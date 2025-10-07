@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\DocumentoService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -12,6 +13,10 @@ class WordController extends Controller
     /**
      * Display a listing of the resource.
      */
+
+    public function __construct(private DocumentoService $docs) {}
+
+
     public function index()
     {
         //
@@ -51,12 +56,11 @@ class WordController extends Controller
 
     public function listarPlantillas()
     {
-        $map = config('templates'); // ['reporte' => 'plantilla_reporte.docx', ...]
-        // Puedes añadir metadatos si quieres (display_name, area, version).
+        $map = config('templates');
         $items = collect($map)->map(fn($file, $key) => [
-            'key' => $key,
-            'filename' => $file,
-            'display_name' => ucfirst($key), // opcional
+            'key'          => $key,
+            'filename'     => $file,
+            'display_name' => ucfirst($key),
         ])->values();
 
         return response()->json($items);
@@ -65,45 +69,18 @@ class WordController extends Controller
 
     public function generarDesdePlantilla(Request $request)
     {
-        $payload = $request->validate([
-            'template' => ['required', 'regex:/^[a-z0-9_\-]+$/i'], // clave
-            'data'     => ['required', 'array'],
+        $data = $request->validate([
+            'template'       => ['required', 'regex:/^[a-z0-9_\-]+$/i'],
+            'codigo_titulo'  => ['nullable', 'integer'], 
+            'titulo'         => ['nullable', 'string'],  
+            'descripcion'    => ['nullable', 'string'], 
+            'id_visto'       => ['nullable', 'integer'], 
+            'fecha_emision'  => ['nullable', 'string'],
         ]);
 
-        $map = config('templates'); // clave => ruta relativa dentro de storage/app/plantillas
-        $key = $payload['template'];
+        $url = $this->docs->generar($data['template'], $data);
 
-        if (!isset($map[$key])) {
-            return response()->json(['message' => 'Plantilla no registrada'], 404);
-        }
-
-        $tplPath = storage_path('app/plantillas/' . $map[$key]);
-        if (!file_exists($tplPath)) {
-            return response()->json(['message' => 'Archivo de plantilla no encontrado en el servidor'], 404);
-        }
-
-        $tp = new TemplateProcessor($tplPath);
-
-        foreach ($payload['data'] as $k => $v) {
-            $tp->setValue($k, is_scalar($v) ? (string)$v : json_encode($v, JSON_UNESCAPED_UNICODE));
-        }
-        $tp->setValue('fecha', now()->format('d/m/Y'));
-
-        $fileName = 'doc_' . Str::random(6) . '.docx';
-
-        $publicDir = storage_path('app/public/word');
-        if (!is_dir($publicDir)) {
-            mkdir($publicDir, 0775, true);
-        }
-        $publicPath = $publicDir . '/' . $fileName;
-
-        $tp->saveAs($publicPath);
-
-        return response()->json([
-            'ok'   => true,
-            'url'  => \Illuminate\Support\Facades\Storage::url('word/' . $fileName),
-            'file' => $fileName,
-            // opcional: 'download_name' => "Resolucion_{$payload['data']['nro']}.docx"
-        ]);
+        return response()->json(['ok' => true, 'url' => $url], 201);
     }
+    
 }
