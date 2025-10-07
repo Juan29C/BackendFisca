@@ -49,6 +49,19 @@ class WordController extends Controller
         //
     }
 
+    public function listarPlantillas()
+    {
+        $map = config('templates'); // ['reporte' => 'plantilla_reporte.docx', ...]
+        // Puedes añadir metadatos si quieres (display_name, area, version).
+        $items = collect($map)->map(fn($file, $key) => [
+            'key' => $key,
+            'filename' => $file,
+            'display_name' => ucfirst($key), // opcional
+        ])->values();
+
+        return response()->json($items);
+    }
+
 
     public function generarDesdePlantilla(Request $request)
     {
@@ -76,7 +89,7 @@ class WordController extends Controller
         }
         $tp->setValue('fecha', now()->format('d/m/Y'));
 
-        $fileName = 'doc_' . \Illuminate\Support\Str::random(6) . '.docx';
+        $fileName = 'doc_' . Str::random(6) . '.docx';
 
         $publicDir = storage_path('app/public/word');
         if (!is_dir($publicDir)) {
