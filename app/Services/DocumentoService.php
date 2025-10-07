@@ -11,10 +11,6 @@ class DocumentoService
         private WordService $word
     ) {}
 
-    /**
-     * Genera documento desde una clave de plantilla (config/templates.php)
-     * y un payload con parámetros (titulo por SP o directo, descripcion, etc.)
-     */
     public function generar(string $templateKey, array $payload): string
     {
         $map = config('templates');
