@@ -24,3 +24,4 @@ Route::get('/user', function (Request $request) {
 Route::get('/ping', fn () => ['ok' => true, 'time' => now()]);
 
 Route::post('/word/plantilla', [WordController::class, 'generarDesdePlantilla']);
+Route::get('/plantillas', [WordController::class, 'listarPlantillas']);

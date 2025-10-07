@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Storage; 
+use App\Services\DocumentoService;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -12,6 +13,10 @@ class WordController extends Controller
     /**
      * Display a listing of the resource.
      */
+
+    public function __construct(private DocumentoService $docs) {}
+
+
     public function index()
     {
         //
@@ -49,48 +54,33 @@ class WordController extends Controller
         //
     }
 
+    public function listarPlantillas()
+    {
+        $map = config('templates');
+        $items = collect($map)->map(fn($file, $key) => [
+            'key'          => $key,
+            'filename'     => $file,
+            'display_name' => ucfirst($key),
+        ])->values();
+
+        return response()->json($items);
+    }
+
 
     public function generarDesdePlantilla(Request $request)
     {
-        $payload = $request->validate([
-            'template' => ['required', 'string'],
-            'data'     => ['required', 'array'],
+        $data = $request->validate([
+            'template'       => ['required', 'regex:/^[a-z0-9_\-]+$/i'],
+            'codigo_titulo'  => ['nullable', 'integer'], 
+            'titulo'         => ['nullable', 'string'],  
+            'descripcion'    => ['nullable', 'string'], 
+            'id_visto'       => ['nullable', 'integer'], 
+            'fecha_emision'  => ['nullable', 'string'],
         ]);
 
-        $tplPath = storage_path('app/plantillas/' . $payload['template']);
-        if (!file_exists($tplPath)) {
-            return response()->json(['message' => 'Plantilla no encontrada'], 404);
-        }
+        $url = $this->docs->generar($data['template'], $data);
 
-        $tp = new TemplateProcessor($tplPath);
-
-        foreach ($payload['data'] as $key => $value) {
-            if (is_array($value) || is_object($value)) {
-                $value = json_encode($value, JSON_UNESCAPED_UNICODE);
-            }
-            $tp->setValue($key, (string) $value);
-        }
-        $tp->setValue('fecha', now()->format('d/m/Y'));
-
-        $fileName = 'doc_' . Str::random(6) . '.docx';
-
-        // --- OPCIÓN A: guardar DIRECTO en public disk ---
-        $publicDir = storage_path('app/public/word');
-        if (!is_dir($publicDir)) {
-            mkdir($publicDir, 0775, true);
-        }
-        $publicPath = $publicDir . '/' . $fileName;
-
-        // Guardar el DOCX final en /storage/app/public/word/...
-        $tp->saveAs($publicPath);
-
-        // Construir URL pública: /storage/word/...
-        $url = Storage::url('word/' . $fileName);
-
-        return response()->json([
-            'ok'  => true,
-            'url' => $url,
-            'file'=> $fileName,
-        ]);
+        return response()->json(['ok' => true, 'url' => $url], 201);
     }
+    
 }

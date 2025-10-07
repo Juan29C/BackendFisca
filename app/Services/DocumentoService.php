@@ -2,41 +2,50 @@
 
 namespace App\Services;
 
-use App\Repositories\DocumentoRepository;
-use Illuminate\Database\Eloquent\Collection;
-use App\Models\Documento;
+use App\Repositories\ResolucionRepository;
 
 class DocumentoService
 {
-    protected DocumentoRepository $repository;
+    public function __construct(
+        private ResolucionRepository $repo,
+        private WordService $word
+    ) {}
 
-    public function __construct(DocumentoRepository $repository)
+    public function generar(string $templateKey, array $payload): string
     {
-        $this->repository = $repository;
-    }
+        $map = config('templates');
+        if (!isset($map[$templateKey])) {
+            throw new \InvalidArgumentException('Plantilla no registrada.');
+        }
+        $templatePath = $map[$templateKey];
 
-    public function getAll(): Collection
-    {
-        return $this->repository->listAll();
-    }
+        // 1) Variables para la plantilla
+        $vars = [];
 
-    public function getById(int $id): ?Documento
-    {
-        return $this->repository->find($id);
-    }
+        // 1a) TÍTULO por SP si envían 'codigo_titulo'; fallback si mandan 'titulo'
+        if (!empty($payload['codigo_titulo'])) {
+            $vars['titulo'] = $this->repo->numeroResolucionSimple((int)$payload['codigo_titulo']);
+        } elseif (!empty($payload['titulo'])) {
+            $vars['titulo'] = (string)$payload['titulo'];
+        }
 
-    public function create(array $data): Documento
-    {
-        return $this->repository->create($data);
-    }
+        // 1b) DESCRIPCIÓN (hoy por request; mañana por SP usando descripcionVisto())
+        if (!empty($payload['descripcion'])) {
+            $vars['descripcion'] = (string)$payload['descripcion'];
+        } elseif (!empty($payload['id_visto'])) {
+            $vars['descripcion'] = $this->repo->descripcionVisto((int)$payload['id_visto']) ?? '';
+        }
 
-    public function update(int $id, array $data): ?Documento
-    {
-        return $this->repository->update($id, $data);
-    }
+        // 1c) Otros campos que quieras mapear
+        if (!empty($payload['fecha_emision'])) {
+            $vars['fecha_emision'] = (string)$payload['fecha_emision'];
+        }
 
-    public function delete(int $id): bool
-    {
-        return $this->repository->delete($id);
+        // 2) (Opcional) tablas/bloques repetibles a futuro
+        $options = [];
+        // $options['tabla_detalle'] = $payload['detalle'] ?? [];
+
+        // 3) Generar y devolver URL pública
+        return $this->word->fromTemplate($templatePath, $vars, $options);
     }
 }
