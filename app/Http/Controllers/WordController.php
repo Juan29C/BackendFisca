@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Storage; 
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use PhpOffice\PhpWord\TemplateProcessor;
@@ -53,44 +53,44 @@ class WordController extends Controller
     public function generarDesdePlantilla(Request $request)
     {
         $payload = $request->validate([
-            'template' => ['required', 'string'],
+            'template' => ['required', 'regex:/^[a-z0-9_\-]+$/i'], // clave
             'data'     => ['required', 'array'],
         ]);
 
-        $tplPath = storage_path('app/plantillas/' . $payload['template']);
+        $map = config('templates'); // clave => ruta relativa dentro de storage/app/plantillas
+        $key = $payload['template'];
+
+        if (!isset($map[$key])) {
+            return response()->json(['message' => 'Plantilla no registrada'], 404);
+        }
+
+        $tplPath = storage_path('app/plantillas/' . $map[$key]);
         if (!file_exists($tplPath)) {
-            return response()->json(['message' => 'Plantilla no encontrada'], 404);
+            return response()->json(['message' => 'Archivo de plantilla no encontrado en el servidor'], 404);
         }
 
         $tp = new TemplateProcessor($tplPath);
 
-        foreach ($payload['data'] as $key => $value) {
-            if (is_array($value) || is_object($value)) {
-                $value = json_encode($value, JSON_UNESCAPED_UNICODE);
-            }
-            $tp->setValue($key, (string) $value);
+        foreach ($payload['data'] as $k => $v) {
+            $tp->setValue($k, is_scalar($v) ? (string)$v : json_encode($v, JSON_UNESCAPED_UNICODE));
         }
         $tp->setValue('fecha', now()->format('d/m/Y'));
 
-        $fileName = 'doc_' . Str::random(6) . '.docx';
+        $fileName = 'doc_' . \Illuminate\Support\Str::random(6) . '.docx';
 
-        // --- OPCIÓN A: guardar DIRECTO en public disk ---
         $publicDir = storage_path('app/public/word');
         if (!is_dir($publicDir)) {
             mkdir($publicDir, 0775, true);
         }
         $publicPath = $publicDir . '/' . $fileName;
 
-        // Guardar el DOCX final en /storage/app/public/word/...
         $tp->saveAs($publicPath);
 
-        // Construir URL pública: /storage/word/...
-        $url = Storage::url('word/' . $fileName);
-
         return response()->json([
-            'ok'  => true,
-            'url' => $url,
-            'file'=> $fileName,
+            'ok'   => true,
+            'url'  => \Illuminate\Support\Facades\Storage::url('word/' . $fileName),
+            'file' => $fileName,
+            // opcional: 'download_name' => "Resolucion_{$payload['data']['nro']}.docx"
         ]);
     }
 }
