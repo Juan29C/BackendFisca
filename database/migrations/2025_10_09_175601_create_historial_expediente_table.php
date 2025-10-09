@@ -14,12 +14,7 @@ return new class extends Migration
             $table->unsignedInteger('id_expediente');
             $table->unsignedInteger('id_estado');
 
-            $table->string('titulo', 200)->nullable();     // ej: "Recepción desde AIFIS"
-            $table->text('descripcion')->nullable();       // ej: "Recepción desde AIFIS - Bloque AAA-001"
-
-            $table->json('meta')->nullable();              // ej: {"origen":"AIFIS","bloque":"AAA-001"}
-
-            
+            $table->string('titulo', 200)->nullable();     // ej: "Informe AIFIS"               
 
             $table->timestamps();
 
