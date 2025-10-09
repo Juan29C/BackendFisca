@@ -13,7 +13,8 @@ class CreateAdministradoTable extends Migration
             $table->enum('tipo', ['natural', 'juridica']);
             $table->string('dni', 15)->nullable();
             $table->string('ruc', 15)->nullable();
-            $table->string('nombre_completo', 200)->nullable();
+            $table->string('nombres', 200)->nullable();
+            $table->string('apellidos', 200)->nullable();
             $table->string('razon_social', 150)->nullable();
             $table->string('domicilio', 255)->nullable();
             $table->string('vinculo', 100)->nullable();

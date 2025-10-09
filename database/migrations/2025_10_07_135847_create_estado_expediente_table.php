@@ -11,7 +11,6 @@ class CreateEstadoExpedienteTable extends Migration
         Schema::create('estado_expediente', function (Blueprint $table) {
             $table->increments('id');
             $table->string('nombre', 50)->unique();
-            $table->text('descripcion')->nullable();
         });
     }
 

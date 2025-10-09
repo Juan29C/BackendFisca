@@ -15,12 +15,16 @@ class EstadoExpediente extends Model
 
     protected $fillable = [
         'nombre',
-        'descripcion',
     ];
 
 
     public function expedientes()
     {
         return $this->hasMany(Expediente::class, 'id_estado', 'id');
+    }
+    
+    public function historial()
+    {
+        return $this->hasMany(HistorialExpediente::class, 'id_estado', 'id');
     }
 }
