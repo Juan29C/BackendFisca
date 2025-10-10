@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Repositories\ExpedienteRepository;
 use Illuminate\Database\Eloquent\Collection;
 use App\Models\Expediente;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class ExpedienteService
 {
@@ -40,9 +41,18 @@ class ExpedienteService
         return $this->repository->delete($id);
     }
 
+    public function getDetailed(int $id, bool $withHistorial = true, int $historialLimit = 0): ?Expediente
+    {
+        return $this->repository->findDetailed($id, $withHistorial, $historialLimit);
+    }
+
+    public function listForGrid(array $filters = [], int $perPage = 10): LengthAwarePaginator
+    {
+        return $this->repository->paginateForList($filters, $perPage);
+    }
+
     public function crearConStoredProcedure(array $data): ?Expediente
     {
-        // Aquí podrías envolver en try/catch para mapear errores del SP
         return $this->repository->createViaStoredProcedure($data);
     }
 }

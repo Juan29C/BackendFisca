@@ -3,12 +3,42 @@
 namespace App\Repositories;
 
 use App\Models\Expediente;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ExpedienteRepository
 {
     protected Expediente $model;
+
+    public function paginateForList(array $filters = [], int $perPage = 10): LengthAwarePaginator
+    {
+        $q         = $filters['q'] ?? null;
+        $estadoId  = $filters['estado_id'] ?? null;
+
+        $query = $this->model->newQuery()
+            ->with(['administrado', 'estado']);
+
+        if (!empty($estadoId)) {
+            $query->where('id_estado', $estadoId);
+        }
+
+        if (!empty($q)) {
+            $q = trim((string)$q);
+            $query->where(function ($sub) use ($q) {
+                $sub->where('codigo_expediente', 'like', "%{$q}%")
+                    ->orWhereHas('administrado', function ($a) use ($q) {
+                        $a->where('dni', 'like', "%{$q}%")
+                            ->orWhere('ruc', 'like', "%{$q}%")
+                            ->orWhere('nombres', 'like', "%{$q}%")
+                            ->orWhere('apellidos', 'like', "%{$q}%")
+                            ->orWhere('razon_social', 'like', "%{$q}%");
+                    });
+            });
+        }
+
+        return $query->orderByDesc('id')->paginate($perPage)->withQueryString();
+    }
 
     public function __construct(Expediente $model)
     {
@@ -52,6 +82,23 @@ class ExpedienteRepository
             ->with(['administrado', 'estado'])
             ->where('codigo_expediente', $codigo)
             ->first();
+    }
+
+    public function findDetailed(int $id, bool $withHistorial = true, int $historialLimit = 0): ?Expediente
+    {
+        $with = ['administrado', 'estado'];
+
+        if ($withHistorial) {
+            $with['historial'] = function ($q) use ($historialLimit) {
+                $q->latest('created_at');
+                if ($historialLimit > 0) {
+                    $q->limit($historialLimit);
+                }
+            };
+            $with[] = 'historial.estado';
+        }
+
+        return $this->model->with($with)->find($id);
     }
 
 
