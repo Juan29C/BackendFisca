@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ExpedienteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WordController;
@@ -25,3 +26,4 @@ Route::get('/ping', fn () => ['ok' => true, 'time' => now()]);
 
 Route::post('/word/plantilla', [WordController::class, 'generarDesdePlantilla']);
 Route::get('/plantillas', [WordController::class, 'listarPlantillas']);
+Route::apiResource('/expedientes', ExpedienteController::class)->only(['store', 'show', 'index']);

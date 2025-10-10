@@ -19,6 +19,10 @@ class Expediente extends Model
         'id_estado',
     ];
 
+    protected $casts = [
+        'fecha_inicio' => 'date', 
+    ];
+
     public function administrado()
     {
         return $this->belongsTo(Administrado::class, 'id_administrado', 'id');

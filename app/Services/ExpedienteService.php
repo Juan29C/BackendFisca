@@ -39,4 +39,10 @@ class ExpedienteService
     {
         return $this->repository->delete($id);
     }
+
+    public function crearConStoredProcedure(array $data): ?Expediente
+    {
+        // Aquí podrías envolver en try/catch para mapear errores del SP
+        return $this->repository->createViaStoredProcedure($data);
+    }
 }
