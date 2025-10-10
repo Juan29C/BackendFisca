@@ -62,13 +62,12 @@ class ExpedienteController extends Controller
     {
         $perPage = (int) $request->input('per_page', 10);
         $filters = [
-            'q'         => $request->input('q'),          // búsqueda libre (código, dni, ruc, nombres, apellidos, razón social)
-            'estado_id' => $request->input('estado_id'),  // filtrar por id_estado
+            'q'         => $request->input('q'),        
+            'estado_id' => $request->input('estado_id'),  
         ];
 
         $page = $this->service->listForGrid($filters, $perPage);
 
-        // Devuelve solo los campos solicitados (id, codigo, ciudadano, dni, domicilio, estado)
         return ExpedienteListResource::collection($page)->response();
     }
 }

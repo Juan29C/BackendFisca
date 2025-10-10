@@ -11,7 +11,7 @@ class CreateResolucionTable extends Migration
         Schema::create('resolucion', function (Blueprint $table) {
             $table->increments('id');
             $table->unsignedInteger('id_expediente');
-            $table->string('numero', 50)->nullable();
+            $table->string('numero', 200)->nullable();
             $table->date('fecha')->nullable();
             $table->string('lugar_emision', 100)->nullable();
             $table->text('texto')->nullable();
