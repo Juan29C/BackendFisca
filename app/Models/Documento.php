@@ -13,12 +13,15 @@ class Documento extends Model
 
     protected $primaryKey = 'id';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'id_expediente',
         'id_tipo',
         'codigo_doc',
         'fecha_doc',
         'descripcion',
+        'ruta',
     ];
 
     // Relaciones
@@ -42,4 +45,6 @@ class Documento extends Model
             'id_resolucion'
         );
     }
+
+    
 }

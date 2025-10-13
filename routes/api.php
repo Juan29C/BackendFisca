@@ -27,3 +27,5 @@ Route::get('/ping', fn () => ['ok' => true, 'time' => now()]);
 Route::post('/word/plantilla', [WordController::class, 'generarDesdePlantilla']);
 Route::get('/plantillas', [WordController::class, 'listarPlantillas']);
 Route::apiResource('/expedientes', ExpedienteController::class)->only(['store', 'show', 'index']);
+Route::post('/expedientes/{id}/documentos', [ExpedienteController::class, 'uploadDocumentos']);
+
