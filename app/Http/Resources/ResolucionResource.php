@@ -9,28 +9,30 @@ class ResolucionResource extends JsonResource
     public function toArray($request): array
     {
         return [
-            'id'                => $this->id,
-            'id_expediente'     => $this->id_expediente,
-            'numero'            => $this->numero,
-            'fecha'             => optional($this->fecha)->toDateString(),
-            'lugar_emision'     => $this->lugar_emision,
-            'texto'             => $this->texto,
-            'id_tipo_resolucion'=> $this->id_tipo_resolucion,
-
-            'expediente'        => $this->whenLoaded('expediente', fn () => [
-                'id' => $this->expediente->id,
-            ]),
-            'tipo_resolucion'   => $this->whenLoaded('tipoResolucion', fn () => [
+            'id'                 => $this->id,
+            'id_expediente'      => $this->id_expediente,
+            'numero'             => $this->numero,
+            'fecha'              => optional($this->fecha)->format('Y-m-d'),
+            'lugar_emision'      => $this->lugar_emision,
+            'texto'              => $this->texto,
+            'tipo_resolucion'    => $this->whenLoaded('tipoResolucion', fn() => [
                 'id'          => $this->tipoResolucion->id,
-                'nombre'      => $this->tipoResolucion->nombre,
-                'descripcion' => $this->tipoResolucion->descripcion,
+                'descripcion' => $this->tipoResolucion->descripcion ?? null,
             ]),
-            'documentos'        => $this->whenLoaded('documentos', fn () =>
-                $this->documentos->pluck('id')
+            'documentos'         => $this->whenLoaded('documentos', fn() =>
+                $this->documentos->map(fn($d) => [
+                    'id'          => $d->id,
+                    'id_tipo'     => $d->id_tipo,
+                    'codigo_doc'  => $d->codigo_doc,
+                    'fecha_doc'   => optional($d->fecha_doc)->format('Y-m-d'),
+                    'descripcion' => $d->descripcion,
+                    'ruta'        => $d->ruta,
+                    'tipo'        => [
+                        'id'          => optional($d->tipoDocumento)->id,
+                        'descripcion' => optional($d->tipoDocumento)->descripcion,
+                    ],
+                ])
             ),
-
-            'created_at'        => optional($this->created_at)->toISOString(),
-            'updated_at'        => optional($this->updated_at)->toISOString(),
         ];
     }
 }

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 class ResolucionRepository
 {
 
-     protected Resolucion $model;
+    protected Resolucion $model;
 
     public function __construct(Resolucion $model)
     {
@@ -56,5 +56,48 @@ class ResolucionRepository
     {
         return null;
     }
-}
 
+    // Crear una resolución desde un expediente
+    public function numeroResolucionSubgerencial(int $codigo): string
+    {
+        $row = DB::selectOne('SELECT fn_generar_numero_resolucion_subgerencial(?) AS numero', [$codigo]);
+        return $row?->numero ?? '';
+    }
+
+    public function createViaStoredProcedure(
+        int $idExpediente,
+        int $codigoResolucion,
+        int $idTipoResolucion,
+        array $documentos = []
+    ): ?Resolucion {
+        // 1) CSVs (si no hay docs, pasamos NULL para que el WHILE no itere)
+        if (!empty($documentos)) {
+            $codigos = implode(',', array_map(fn($d) => $d['codigo_doc'], $documentos));
+            $fechas  = implode(',', array_map(fn($d) => $d['fecha_doc'],  $documentos));
+            $tipos   = implode(',', array_map(fn($d) => $d['id_tipo'],     $documentos));
+        } else {
+            $codigos = $fechas = $tipos = null;
+        }
+
+        // 2) Ejecutar SP
+        DB::statement('CALL crear_resolucion_con_documentos(?, ?, ?, ?, ?, ?)', [
+            $idExpediente,
+            $codigoResolucion,
+            $idTipoResolucion,
+            $codigos,
+            $fechas,
+            $tipos,
+        ]);
+
+        // 3) Calcular el numero que generó el SP para buscar la resolución
+        $numero = $this->numeroResolucionSubgerencial($codigoResolucion);
+
+        // 4) Devolver resolución con relaciones
+        return $this->model
+            ->with(['tipoResolucion', 'documentos.tipoDocumento'])
+            ->where('id_expediente', $idExpediente)
+            ->where('numero', $numero)
+            ->latest('id')
+            ->first();
+    }
+}
