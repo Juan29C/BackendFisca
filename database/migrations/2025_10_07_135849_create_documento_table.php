@@ -15,6 +15,7 @@ class CreateDocumentoTable extends Migration
             $table->string('codigo_doc', 50)->nullable();
             $table->date('fecha_doc')->nullable();
             $table->text('descripcion')->nullable();
+            $table->string('ruta', 2048)->nullable();
 
             $table->foreign('id_expediente')->references('id')->on('expediente')->onDelete('restrict');
             $table->foreign('id_tipo')->references('id')->on('tipos_documentos')->onDelete('restrict');
