@@ -1,0 +1,49 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\UploadExpedienteDocumentosRequest;
+use App\Http\Resources\DocumentoResource;
+use App\Http\Resources\DocumentosExpedienteResource;
+use App\Models\Documento;
+use App\Models\Expediente;
+use App\Services\DocumentoService;
+use Illuminate\Http\JsonResponse;
+
+
+class DocumentoController extends Controller
+{
+    public function __construct(private DocumentoService $service) {}
+
+    // POST /expedientes/{expediente}/documentos
+     public function store(UploadExpedienteDocumentosRequest $request, Expediente $expediente): JsonResponse
+    {
+        try {
+            $documento = $this->service->uploadSingle($expediente, $request->validated());
+
+            return response()->json([
+                'ok'      => true,
+                'message' => 'Documento subido correctamente',
+                'data'    => new DocumentoResource($documento),
+            ], 201);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok'      => false,
+                'message' => 'Error al subir el documento',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // GET /expedientes/{expediente}/documentos
+    public function index(Expediente $expediente): JsonResponse
+    {
+        $docs = $expediente->documentos()->with('tipoDocumento')->latest('id')->get();
+
+        return response()->json([
+            'ok'   => true,
+            'data' => DocumentosExpedienteResource::collection($docs),
+        ]);
+    }
+}

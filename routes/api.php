@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ResolucionController;
 use Illuminate\Http\Request;
@@ -12,24 +13,18 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 
-/*
-|--------------------------------------------------------------------------
-| API Routes                                                 
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
-|
-*/
+Route::prefix('v1')->group(function () {
+    // Expedientes
+    Route::apiResource('expedientes', ExpedienteController::class)->only(['index','show','store']);
 
-Route::get('/ping', fn () => ['ok' => true, 'time' => now()]);
+    // Documentos anidados en expediente
+    Route::get('expedientes/{expediente}/documentos', [DocumentoController::class, 'index']);
+    Route::post('expedientes/{expediente}/documentos', [DocumentoController::class, 'store']);
 
-Route::post('/word/plantilla', [WordController::class, 'generarDesdePlantilla']);
-Route::get('/plantillas', [WordController::class, 'listarPlantillas']);
-Route::apiResource('/expedientes', ExpedienteController::class)->only(['store', 'show', 'index']);
-Route::post('/expedientes/{id}/documentos', [ExpedienteController::class, 'uploadDocumentos']);
-Route::post('/expedientes/{id}/resoluciones', [ResolucionController::class, 'storeForExpediente']);
+    // Resoluciones (si también son por expediente)
+    Route::post('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'storeForExpediente']);
+    Route::get('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'indexForExpediente']);
 
-
-Route::get('/test-ex', function () { throw new \DomainException('Prueba Domain'); });
+    // Catálogo de tipos de documento
+    //Route::get('tipos-documentos', [TiposDocumentoController::class, 'index']);
+});

@@ -3,9 +3,13 @@
 namespace App\Services;
 
 use App\Models\Documento;
+use App\Models\Expediente;
 use App\Repositories\DocumentoRepository;
 use App\Repositories\ResolucionRepository;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class DocumentoService
 {
@@ -48,33 +52,54 @@ class DocumentoService
         }
         $templatePath = $map[$templateKey];
 
-        // 1) Variables para la plantilla
         $vars = [];
 
-        // 1a) TÍTULO por SP si envían 'codigo_titulo'; fallback si mandan 'titulo'
         if (!empty($payload['codigo_titulo'])) {
             $vars['titulo'] = $this->repo->numeroResolucionSimple((int)$payload['codigo_titulo']);
         } elseif (!empty($payload['titulo'])) {
             $vars['titulo'] = (string)$payload['titulo'];
         }
 
-        // 1b) DESCRIPCIÓN (hoy por request; mañana por SP usando descripcionVisto())
         if (!empty($payload['descripcion'])) {
             $vars['descripcion'] = (string)$payload['descripcion'];
         } elseif (!empty($payload['id_visto'])) {
             $vars['descripcion'] = $this->repo->descripcionVisto((int)$payload['id_visto']) ?? '';
         }
 
-        // 1c) Otros campos que quieras mapear
         if (!empty($payload['fecha_emision'])) {
             $vars['fecha_emision'] = (string)$payload['fecha_emision'];
         }
 
-        // 2) (Opcional) tablas/bloques repetibles a futuro
         $options = [];
-        // $options['tabla_detalle'] = $payload['detalle'] ?? [];
 
-        // 3) Generar y devolver URL pública
         return $this->word->fromTemplate($templatePath, $vars, $options);
+    }
+
+    public function uploadSingle(Expediente $expediente, array $data): Documento
+    {
+        $adm = $expediente->administrado;
+        $slugPersona = $adm?->ruc ?: $adm?->dni ?: ('expediente_' . $expediente->id);
+        $baseFolder  = "expedientes/{$slugPersona}";
+
+        DB::beginTransaction();
+        try {
+            $filename   = Str::random(40) . '.pdf';
+            $storedPath = Storage::disk('public')->putFileAs($baseFolder, $data['file'], $filename);
+
+            $documento = $this->repository->create([
+                'id_expediente' => $expediente->id,
+                'id_tipo'       => $data['id_tipo'],
+                'codigo_doc'    => $data['codigo_doc'] ?? null,
+                'fecha_doc'     => $data['fecha_doc'] ?? null,
+                'descripcion'   => $data['descripcion'] ?? null,
+                'ruta'          => $storedPath,
+            ]);
+
+            DB::commit();
+            return $documento->fresh(['tipoDocumento']);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 }
