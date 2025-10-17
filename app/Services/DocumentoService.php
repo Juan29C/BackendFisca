@@ -39,8 +39,52 @@ class DocumentoService
         return $this->repository->update($id, $data);
     }
 
-    public function delete(int $id): bool
+    public function updateDocumento(int $id, array $data): Documento
     {
+        DB::beginTransaction();
+        try {
+            $documento = $this->repository->find($id);
+            if (!$documento) {
+                throw new \Exception("Documento no encontrado");
+            }
+
+            // Si viene un nuevo archivo, reemplazarlo
+            if (isset($data['file']) && $data['file']->isValid()) {
+                if ($documento->ruta && Storage::disk('public')->exists($documento->ruta)) {
+                    Storage::disk('public')->delete($documento->ruta);
+                }
+
+                $baseFolder = dirname($documento->ruta);
+                $filename   = Str::random(40) . '.pdf';
+                $storedPath = Storage::disk('public')->putFileAs($baseFolder, $data['file'], $filename);
+                $data['ruta'] = $storedPath;
+            }
+
+            unset($data['file']);
+            $this->repository->update($id, $data);
+
+            DB::commit();
+            return $this->repository->find($id)->fresh(['tipoDocumento']);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+    }
+
+
+    // ✅ Eliminar documento (y borrar archivo físico)
+    public function deleteDocumento(int $id): bool
+    {
+        $documento = $this->repository->find($id);
+        if (!$documento) {
+            throw new \Exception("Documento no encontrado");
+        }
+
+        // Eliminar archivo físico si existe
+        if ($documento->ruta && Storage::disk('public')->exists($documento->ruta)) {
+            Storage::disk('public')->delete($documento->ruta);
+        }
+
         return $this->repository->delete($id);
     }
 

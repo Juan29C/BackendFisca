@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\PatchDocumentoRequest;
 use App\Http\Requests\UploadExpedienteDocumentosRequest;
 use App\Http\Resources\DocumentoResource;
 use App\Http\Resources\DocumentosExpedienteResource;
@@ -45,5 +46,42 @@ class DocumentoController extends Controller
             'ok'   => true,
             'data' => DocumentosExpedienteResource::collection($docs),
         ]);
+    }
+
+    // ✅ PATCH /documentos/{documento}
+    public function patch(PatchDocumentoRequest $request, Documento $documento): JsonResponse
+    {
+        try {
+            $updated = $this->service->updateDocumento($documento->id, $request->validated());
+
+            return response()->json([
+                'ok'      => true,
+                'message' => 'Documento actualizado correctamente',
+                'data'    => new DocumentoResource($updated),
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok'    => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // ✅ DELETE /documentos/{documento}
+    public function destroy(Documento $documento): JsonResponse
+    {
+        try {
+            $this->service->deleteDocumento($documento->id);
+
+            return response()->json([
+                'ok'      => true,
+                'message' => 'Documento eliminado correctamente',
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok'    => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

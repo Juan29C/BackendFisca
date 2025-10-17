@@ -20,6 +20,8 @@ Route::prefix('v1')->group(function () {
     // Documentos anidados en expediente
     Route::get('expedientes/{expediente}/documentos', [DocumentoController::class, 'index']);
     Route::post('expedientes/{expediente}/documentos', [DocumentoController::class, 'store']);
+    
+
 
     // Resoluciones (si también son por expediente)
     Route::post('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'storeForExpediente']);
