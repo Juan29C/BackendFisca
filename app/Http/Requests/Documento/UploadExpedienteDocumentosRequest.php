@@ -1,7 +1,7 @@
 <?php
 
 // app/Http/Requests/UploadExpedienteDocumentosRequest.php
-namespace App\Http\Requests;
+namespace App\Http\Requests\Documento;
 
 use Illuminate\Foundation\Http\FormRequest;
 

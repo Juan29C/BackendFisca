@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\PatchDocumentoRequest;
-use App\Http\Requests\UploadExpedienteDocumentosRequest;
+use App\Http\Requests\Documento\PatchDocumentoRequest;
+use App\Http\Requests\Documento\UploadExpedienteDocumentosRequest;
 use App\Http\Resources\DocumentoResource;
 use App\Http\Resources\DocumentosExpedienteResource;
 use App\Models\Documento;
@@ -17,24 +17,16 @@ class DocumentoController extends Controller
     public function __construct(private DocumentoService $service) {}
 
     // POST /expedientes/{expediente}/documentos
-     public function store(UploadExpedienteDocumentosRequest $request, Expediente $expediente): JsonResponse
+    public function store(UploadExpedienteDocumentosRequest $request, Expediente $expediente): JsonResponse
     {
-        try {
-            $documento = $this->service->uploadSingle($expediente, $request->validated());
+        // No capturamos DocumentoDuplicadoException aquí para que la maneje el Handler global
+        $documento = $this->service->uploadSingle($expediente, $request->validated());
 
-            return response()->json([
-                'ok'      => true,
-                'message' => 'Documento subido correctamente',
-                'data'    => new DocumentoResource($documento),
-            ], 201);
-
-        } catch (\Throwable $e) {
-            return response()->json([
-                'ok'      => false,
-                'message' => 'Error al subir el documento',
-                'error'   => $e->getMessage(),
-            ], 500);
-        }
+        return response()->json([
+            'ok'      => true,
+            'message' => 'Documento subido correctamente',
+            'data'    => new DocumentoResource($documento),
+        ], 201);
     }
 
     // GET /expedientes/{expediente}/documentos
@@ -48,7 +40,7 @@ class DocumentoController extends Controller
         ]);
     }
 
-    // ✅ PATCH /documentos/{documento}
+    // PATCH /documentos/{documento}
     public function patch(PatchDocumentoRequest $request, Documento $documento): JsonResponse
     {
         try {

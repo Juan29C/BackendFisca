@@ -43,4 +43,15 @@ class DocumentoRepository
         if (!$record) return false;
         return $record->delete();
     }
+
+
+    // Verificar si existe un documento con el mismo codigo de documento
+    public function existsForExpedienteTipo(int $expedienteId, int $tipoId): bool
+    {
+        return $this->model->where('id_expediente', $expedienteId)
+            ->where('id_tipo', $tipoId)
+            ->exists();
+    }
+
+    
 }

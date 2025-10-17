@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\DocumentoDuplicadoException;
 use App\Models\Documento;
 use App\Models\Expediente;
 use App\Repositories\DocumentoRepository;
@@ -121,15 +122,23 @@ class DocumentoService
 
     public function uploadSingle(Expediente $expediente, array $data): Documento
     {
-        $adm = $expediente->administrado;
-        $slugPersona = $adm?->ruc ?: $adm?->dni ?: ('expediente_' . $expediente->id);
-        $baseFolder  = "expedientes/{$slugPersona}";
+        if ($this->repository->existsForExpedienteTipo($expediente->id, $data['id_tipo'])) {
+            throw new DocumentoDuplicadoException();
+        }
 
         DB::beginTransaction();
+        $storedPath = null;
+
         try {
+            $adm = $expediente->administrado;
+            $slugPersona = $adm?->ruc ?: $adm?->dni ?: ('expediente_' . $expediente->id);
+            $baseFolder  = "expedientes/{$slugPersona}";
+
+            // 2) Subida
             $filename   = Str::random(40) . '.pdf';
             $storedPath = Storage::disk('public')->putFileAs($baseFolder, $data['file'], $filename);
 
+            // 3) Insert
             $documento = $this->repository->create([
                 'id_expediente' => $expediente->id,
                 'id_tipo'       => $data['id_tipo'],
@@ -143,6 +152,11 @@ class DocumentoService
             return $documento->fresh(['tipoDocumento']);
         } catch (\Throwable $e) {
             DB::rollBack();
+
+            if ($storedPath) {
+                Storage::disk('public')->delete($storedPath);
+            }
+
             throw $e;
         }
     }
