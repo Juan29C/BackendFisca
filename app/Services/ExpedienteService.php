@@ -120,4 +120,28 @@ class ExpedienteService
             return $exp->load(['administrado','estado','historial.estado']);
         });
     }
+
+    // Funcion para iniciar reconsideración
+    public function iniciarReconsideracion(int $expedienteId): Expediente
+    {
+        return DB::transaction(function () use ($expedienteId) {
+            $exp = Expediente::with('estado')->find($expedienteId);
+            if (!$exp) abort(404, 'Expediente no encontrado');
+
+            // Con cast a enum en el modelo:
+            $estadoActual = $exp->id_estado instanceof EE ? $exp->id_estado : EE::from((int)$exp->id_estado);
+
+            if ($estadoActual !== EE::EN_PROCESO) {
+                throw new TransicionInvalidaException(
+                    'Solo se puede iniciar la reconsideración cuando el expediente está en "En Proceso".'
+                );
+            }
+
+            $exp->id_estado = EE::EVALUANDO_RECONSIDERACION; // o ->value si no usas cast
+            $exp->save(); // tu hook booted() registrará historial
+
+            return $exp->load(['administrado','estado','historial.estado']);
+        });
+    }
+    
 }

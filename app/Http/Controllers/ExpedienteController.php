@@ -100,4 +100,11 @@ class ExpedienteController extends Controller
         $exp = $this->service->resolverApelacion($id, $request->boolean('hubo_apelacion'));
         return (new ExpedienteResource($exp))->response();
     }
+
+    // POST /expedientes/{id}/reconsideracion
+    public function iniciarReconsideracion(int $id): JsonResponse
+    {
+        $exp = $this->service->iniciarReconsideracion($id);
+        return (new ExpedienteResource($exp))->response();
+    }
 }

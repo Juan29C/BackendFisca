@@ -21,6 +21,7 @@ Route::prefix('v1')->group(function () {
     Route::put('expedientes/{id}', [ExpedienteController::class, 'update']);
     Route::delete('expedientes/{id}', [ExpedienteController::class, 'destroy']);
     Route::post('expedientes/{id}/apelacion', [ExpedienteController::class, 'resolverApelacion']);
+    Route::post('expedientes/{id}/reconsideracion', [ExpedienteController::class, 'iniciarReconsideracion']);
 
     // Documentos anidados en expediente
     Route::get('expedientes/{expediente}/documentos', [DocumentoController::class, 'index']);

@@ -2,25 +2,13 @@
 
 namespace App\Exceptions;
 
-use Exception;
-use Throwable;
-
-class DocumentoDuplicadoException extends Exception
+class DocumentoDuplicadoException extends ApiException
 {
-    public function __construct(
-        string $message = 'El documento ya fue registrado para este expediente.',
-        int $code = 409,
-        ?Throwable $previous = null
-    ) {
-        parent::__construct($message, $code, $previous);
-    }
+    protected string $errorKey = 'DOCUMENTO_DUPLICADO';
+    protected int $httpStatus = 409;
 
-    public function render($request)
+    public function __construct(string $message = 'El documento ya fue registrado para este expediente.')
     {
-        return response()->json([
-            'ok'      => false,
-            'message' => $this->getMessage(),
-            'error'   => 'DOCUMENTO_DUPLICADO',
-        ], 409);
+        parent::__construct($message);
     }
 }
