@@ -6,6 +6,7 @@ use App\Models\Expediente;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ExpedienteRepository
 {
@@ -132,5 +133,35 @@ class ExpedienteRepository
         return $this->model
             ->with(['administrado', 'estado', 'historial.estado'])
             ->find($row->id);
+    }
+
+    public function updateBasic(Expediente $expediente, array $data): Expediente
+    {
+        $expediente->fill($data);
+        $expediente->save();
+        return $expediente->refresh();
+    }
+
+    public function updateAdministrado(Expediente $expediente, array $adm): void
+    {
+        $expediente->administrado->fill($adm);
+        $expediente->administrado->save();
+    }
+
+    public function deleteWithCascade(Expediente $expediente): void
+    {
+        // Borrar archivos de documentos
+        $docs = $expediente->documentos()->get(['ruta']);
+        foreach ($docs as $d) {
+            if ($d->ruta && Storage::disk('public')->exists($d->ruta)) {
+                Storage::disk('public')->delete($d->ruta);
+            }
+        }
+
+        // Si no hay ON DELETE CASCADE, borra manualmente:
+        // $expediente->documentos()->delete();
+        // $expediente->historial()->delete();
+
+        $expediente->delete();
     }
 }

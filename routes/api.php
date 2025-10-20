@@ -15,13 +15,16 @@ Route::get('/user', function (Request $request) {
 
 Route::prefix('v1')->group(function () {
     // Expedientes
-    Route::apiResource('expedientes', ExpedienteController::class)->only(['index','show','store']);
+    Route::post('expedientes', [ExpedienteController::class, 'store']);
+    Route::get('expedientes', [ExpedienteController::class, 'index']);
+    Route::get('expedientes/{id}', [ExpedienteController::class, 'show']);
+    Route::put('expedientes/{id}', [ExpedienteController::class, 'update']);
+    Route::delete('expedientes/{id}', [ExpedienteController::class, 'destroy']);
 
     // Documentos anidados en expediente
     Route::get('expedientes/{expediente}/documentos', [DocumentoController::class, 'index']);
     Route::post('expedientes/{expediente}/documentos', [DocumentoController::class, 'store']);
-    
-
+        
 
     // Resoluciones (si también son por expediente)
     Route::post('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'storeForExpediente']);

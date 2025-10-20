@@ -24,6 +24,8 @@ class Administrado extends Model
         'vinculo',
     ];
 
+    public $timestamps = false; 
+
 
     public function expedientes()
     {

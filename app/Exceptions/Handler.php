@@ -6,6 +6,8 @@ use Throwable;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+
 
 class Handler extends ExceptionHandler
 {
@@ -41,7 +43,7 @@ class Handler extends ExceptionHandler
                 // No mostramos trazas en producción
                 $message = config('app.debug') ? $e->getMessage() : 'Error interno del servidor';
                 $code = 500;
-                
+
                 if ($e instanceof HttpException) {
                     $code = $e->getStatusCode();
                 }
@@ -49,6 +51,16 @@ class Handler extends ExceptionHandler
                 return response()->json([
                     'ok'      => false,
                     'message' => $message,
+                ], $code);
+            }
+        });
+
+        $this->renderable(function (\Throwable $e, $request) {
+            if ($request->is('api/*')) {
+                $code = $e instanceof HttpExceptionInterface ? $e->getStatusCode() : 500;
+                return response()->json([
+                    'ok' => false,
+                    'message' => config('app.debug') ? $e->getMessage() : 'Error interno del servidor',
                 ], $code);
             }
         });

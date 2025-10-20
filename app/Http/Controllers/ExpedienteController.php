@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Expediente\UpdateExpedienteRequest;
 use App\Http\Requests\StoreExpedienteRequest;
 use App\Http\Requests\UploadExpedienteDocumentosRequest;
 use App\Http\Resources\ExpedienteListResource;
@@ -75,74 +76,23 @@ class ExpedienteController extends Controller
         return ExpedienteListResource::collection($page)->response();
     }
 
-    // Upload de documentos
-    public function uploadDocumentos(UploadExpedienteDocumentosRequest $request, int $id): JsonResponse
+    public function update(UpdateExpedienteRequest $request, int $id): JsonResponse
     {
-        // 1) Buscar expediente con su administrado (para carpeta por DNI/RUC)
-        $expediente = Expediente::with('administrado')->find($id);
-        if (!$expediente) {
-            return response()->json(['ok' => false, 'message' => 'Expediente no encontrado'], 404);
+        $exp = $this->service->updateBasic($id, $request->validated());
+        if (!$exp) {
+            return response()->json(['ok'=>false,'message'=>'Expediente no encontrado'], 404);
         }
-
-        $adm = $expediente->administrado;
-        $slugPersona = null;
-
-        if ($adm) {
-            // Carpeta por DNI o RUC según tipo
-            if ($adm->tipo === 'juridica' && !empty($adm->ruc)) {
-                $slugPersona = $adm->ruc;
-            } elseif ($adm->tipo === 'natural' && !empty($adm->dni)) {
-                $slugPersona = $adm->dni;
-            }
-        }
-        if (!$slugPersona) {
-            // Fallback si no hay doc de identidad
-            $slugPersona = 'expediente_' . $expediente->id;
-        }
-
-        // Carpeta destino: storage/app/public/expedientes/{dni|ruc}/
-        $baseFolder = "expedientes/{$slugPersona}";
-
-        $files = $request->file('files', []); // array asociativo: [ id_tipo => UploadedFile ]
-        if (empty($files)) {
-            return response()->json([
-                'ok' => true,
-                'message' => 'No se enviaron archivos. Nada que subir.',
-                'uploaded' => []
-            ]);
-        }
-
-        $uploaded = [];
-
-        foreach ($files as $idTipo => $file) {
-
-            if (!is_numeric($idTipo)) {
-                continue;
-            }
-            $path = $file->store($baseFolder, 'public');
-            $url  = Storage::url($path);
-
-            $doc = Documento::create([
-                'id_expediente' => $expediente->id,
-                'id_tipo'       => (int)$idTipo,
-                'codigo_doc'    => null,
-                'fecha_doc'     => null,
-                'descripcion'   => null,
-                'ruta'          => $url,
-            ]);
-
-            $uploaded[] = [
-                'id'           => $doc->id,
-                'id_tipo'      => (int)$idTipo,
-                'nombre'       => $file->getClientOriginalName(),
-                'ruta'         => $url,
-            ];
-        }
-
-        return response()->json([
-            'ok'       => true,
-            'message'  => 'Documentos subidos correctamente.',
-            'uploaded' => $uploaded
-        ], 201);
+        return (new ExpedienteResource($exp))->response();
     }
+
+    // DELETE /expedientes/{id}
+    public function destroy(int $id): JsonResponse
+    {
+        $ok = $this->service->deleteExpediente($id);
+        if (!$ok) {
+            return response()->json(['ok'=>false,'message'=>'Expediente no encontrado'], 404);
+        }
+        return response()->json(['ok'=>true,'message'=>'Expediente eliminado correctamente']);
+    }
+
 }

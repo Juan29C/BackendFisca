@@ -19,6 +19,8 @@ class Expediente extends Model
         'id_estado',
     ];
 
+    public $timestamps = false; 
+    
     protected $casts = [
         'fecha_inicio' => 'date', 
     ];
