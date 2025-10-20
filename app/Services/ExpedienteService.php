@@ -61,7 +61,7 @@ class ExpedienteService
     {
 
         $this->assertNumeroDisponible((int) $data['numero_expediente']);
-        
+
         try {
             $expediente = $this->repository->createViaStoredProcedure($data);
         } catch (QueryException $e) {
@@ -86,24 +86,12 @@ class ExpedienteService
     {
         $anio = now()->year;
 
-        // Prefijo sin espacios: "EXP-N°{numero}-{anio}"
-        $needle = "EXP-N°{$numero}-{$anio}";
-
-        // Quitamos espacios normales y no-breakings de la columna para comparar
-        $exists = DB::table('expediente')
-            ->whereRaw("
-            REPLACE(REPLACE(codigo_expediente, ' ', ''), ' ', '') LIKE CONCAT(?, '%')
-        ", [$needle])
-            ->exists();
-
-        if ($exists) {
+        if ($this->repository->existsCodigoForNumeroAndYear($numero, $anio)) {
             throw new ExpedienteDuplicadoException(
                 "Ya existe un expediente con el número {$numero} en el año {$anio}."
             );
         }
     }
-
-
 
     public function updateBasic(int $id, array $data): ?Expediente
     {

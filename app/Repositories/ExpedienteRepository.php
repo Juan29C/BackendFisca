@@ -54,7 +54,7 @@ class ExpedienteRepository
                 'estado:id,nombre'
             ])
             ->orderByDesc('id')
-            ->get(); // <- SIN filtros ni paginate
+            ->get();
     }
 
     public function find(int $id): ?Expediente
@@ -108,13 +108,6 @@ class ExpedienteRepository
         return $this->model->with($with)->find($id);
     }
 
-
-    /**
-     * Llama al SP para crear expediente (y administrado si corresponde).
-     * Luego recalcula el 'codigo_expediente' y lo busca para retornarlo completo.
-     *
-     * @throws \Throwable si el SP lanza SIGNAL (FKs, duplicados, etc.)
-     */
     public function createViaStoredProcedure(array $payload): ?Expediente
     {
         // Llama al SP y captura el SELECT final (id, codigo)
@@ -139,6 +132,20 @@ class ExpedienteRepository
         return $this->model
             ->with(['administrado', 'estado', 'historial.estado'])
             ->find($row->id);
+    }
+
+    public function existsCodigoForNumeroAndYear(int $numero, int $anio): bool
+    {
+        $row = DB::selectOne(
+            "SELECT EXISTS(
+            SELECT 1
+            FROM expediente
+            WHERE codigo_expediente = fn_generar_numero_expediente_simple(?)
+        ) AS e",
+            [$numero]
+        );
+
+        return (bool) ($row?->e ?? 0);
     }
 
     public function updateBasic(Expediente $expediente, array $data): Expediente

@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Enums\EstadoExpedienteEnum as EE;
 use App\Exceptions\DocumentoDuplicadoException;
+use App\Exceptions\EstadoExpedienteInvalidoException;
 use App\Models\Documento;
 use App\Models\Expediente;
 use App\Repositories\DocumentoRepository;
@@ -126,6 +128,8 @@ class DocumentoService
             throw new DocumentoDuplicadoException();
         }
 
+        $this->assertEstadoValidoParaTipo($expediente, (int)$data['id_tipo']);
+
         DB::beginTransaction();
         $storedPath = null;
 
@@ -134,11 +138,9 @@ class DocumentoService
             $slugPersona = $adm?->ruc ?: $adm?->dni ?: ('expediente_' . $expediente->id);
             $baseFolder  = "expedientes/{$slugPersona}";
 
-            // 2) Subida
             $filename   = Str::random(40) . '.pdf';
             $storedPath = Storage::disk('public')->putFileAs($baseFolder, $data['file'], $filename);
 
-            // 3) Insert
             $documento = $this->repository->create([
                 'id_expediente' => $expediente->id,
                 'id_tipo'       => $data['id_tipo'],
@@ -158,6 +160,34 @@ class DocumentoService
             }
 
             throw $e;
+        }
+    }
+
+    private function assertEstadoValidoParaTipo(Expediente $expediente, int $tipoId): void
+    {
+        $estado = $expediente->id_estado instanceof EE
+            ? $expediente->id_estado
+            : EE::from((int)$expediente->id_estado);
+
+        $requiereEnProcesoOReconsideracion = [8, 9];
+        $requiereElevadoGerenciaSeguridad  = [10, 11];
+
+        if (in_array($tipoId, $requiereEnProcesoOReconsideracion, true)) {
+            if (!in_array($estado, [EE::EN_PROCESO, EE::EVALUANDO_RECONSIDERACION], true)) {
+                throw new EstadoExpedienteInvalidoException(
+                    'Para subir una Resolución (No ha lugar / Continuar), el expediente debe estar en "En Proceso" o "Evaluando Reconsideración".'
+                );
+            }
+            return;
+        }
+
+        if (in_array($tipoId, $requiereElevadoGerenciaSeguridad, true)) {
+            if ($estado !== EE::ELEVADO_GERENCIA_SEGURIDAD_CIUD) {
+                throw new EstadoExpedienteInvalidoException(
+                    'Para subir un Informe de Seguridad Ciudadana (Continuar / No Continuar), el expediente debe estar "Elevado a Gerencia de Seguridad Ciudadana".'
+                );
+            }
+            return;
         }
     }
 }
