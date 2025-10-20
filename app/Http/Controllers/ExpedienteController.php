@@ -69,7 +69,7 @@ class ExpedienteController extends Controller
             'estado_id' => $request->input('estado_id'),
         ];
 
-        $page = $this->service->listForGrid($filters, $perPage);
+        $page = $this->service->getAll();
 
         return ExpedienteListResource::collection($page)->response();
     }
