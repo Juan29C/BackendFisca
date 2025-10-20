@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Exceptions\TransicionInvalidaException;
 use App\Repositories\ExpedienteRepository;
 use Illuminate\Database\Eloquent\Collection;
 use App\Models\Expediente;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use App\Enums\EstadoExpedienteEnum as EE;
 
 class ExpedienteService
 {
@@ -93,6 +95,29 @@ class ExpedienteService
 
             $this->repository->deleteWithCascade($exp);
             return true;
+        });
+    }
+
+    // Funcion para resolver apelación
+    public function resolverApelacion(int $expedienteId, bool $huboApelacion): Expediente
+    {
+        return DB::transaction(function () use ($expedienteId, $huboApelacion) {
+            $exp = Expediente::with('estado')->find($expedienteId);
+            if (!$exp) abort(404, 'Expediente no encontrado');
+
+            $estadoActual = $exp->id_estado instanceof EE ? $exp->id_estado : EE::from((int)$exp->id_estado);
+
+            if ($estadoActual !== EE::ESPERANDO_APELACION) {
+                throw new TransicionInvalidaException(
+                    'Solo se puede resolver la apelación cuando el expediente está en "Esperando Apelación".'
+                );
+            }
+
+            $nuevo = $huboApelacion ? EE::ELEVADO_GERENCIA_SEGURIDAD_CIUD : EE::ELEVADO_COACTIVO;
+            $exp->id_estado = $nuevo; 
+            $exp->save();           
+
+            return $exp->load(['administrado','estado','historial.estado']);
         });
     }
 }

@@ -20,6 +20,7 @@ Route::prefix('v1')->group(function () {
     Route::get('expedientes/{id}', [ExpedienteController::class, 'show']);
     Route::put('expedientes/{id}', [ExpedienteController::class, 'update']);
     Route::delete('expedientes/{id}', [ExpedienteController::class, 'destroy']);
+    Route::post('expedientes/{id}/apelacion', [ExpedienteController::class, 'resolverApelacion']);
 
     // Documentos anidados en expediente
     Route::get('expedientes/{expediente}/documentos', [DocumentoController::class, 'index']);
@@ -32,4 +33,7 @@ Route::prefix('v1')->group(function () {
 
     // Catálogo de tipos de documento
     //Route::get('tipos-documentos', [TiposDocumentoController::class, 'index']);
+
+    // Listar plantillas de documentos
+    Route::get('plantillas', [WordController::class, 'listarPlantillas']);
 });

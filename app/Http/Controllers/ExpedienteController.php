@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Expediente\ResolverApelacionRequest;
 use App\Http\Requests\Expediente\UpdateExpedienteRequest;
 use App\Http\Requests\StoreExpedienteRequest;
-use App\Http\Requests\UploadExpedienteDocumentosRequest;
 use App\Http\Resources\ExpedienteListResource;
 use App\Http\Resources\ExpedienteResource;
-use App\Models\Documento;
-use App\Models\Expediente;
 use App\Services\ExpedienteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -80,7 +78,7 @@ class ExpedienteController extends Controller
     {
         $exp = $this->service->updateBasic($id, $request->validated());
         if (!$exp) {
-            return response()->json(['ok'=>false,'message'=>'Expediente no encontrado'], 404);
+            return response()->json(['ok' => false, 'message' => 'Expediente no encontrado'], 404);
         }
         return (new ExpedienteResource($exp))->response();
     }
@@ -90,9 +88,16 @@ class ExpedienteController extends Controller
     {
         $ok = $this->service->deleteExpediente($id);
         if (!$ok) {
-            return response()->json(['ok'=>false,'message'=>'Expediente no encontrado'], 404);
+            return response()->json(['ok' => false, 'message' => 'Expediente no encontrado'], 404);
         }
-        return response()->json(['ok'=>true,'message'=>'Expediente eliminado correctamente']);
+        return response()->json(['ok' => true, 'message' => 'Expediente eliminado correctamente']);
     }
 
+
+    // POST /expedientes/{id}/resolver-apelacion
+    public function resolverApelacion(ResolverApelacionRequest $request, int $id): JsonResponse
+    {
+        $exp = $this->service->resolverApelacion($id, $request->boolean('hubo_apelacion'));
+        return (new ExpedienteResource($exp))->response();
+    }
 }

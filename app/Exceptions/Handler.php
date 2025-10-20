@@ -64,5 +64,10 @@ class Handler extends ExceptionHandler
                 ], $code);
             }
         });
+
+        // Manejo específico para TransicionInvalidaException
+        $this->renderable(function (TransicionInvalidaException $e, $request) {
+            return response()->json(['ok' => false, 'message' => $e->getMessage()], 409);
+        });
     }
 }

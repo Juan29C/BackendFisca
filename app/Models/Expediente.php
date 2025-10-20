@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\EstadoExpedienteEnum;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class Expediente extends Model
 {
@@ -23,6 +25,7 @@ class Expediente extends Model
     
     protected $casts = [
         'fecha_inicio' => 'date', 
+        'id_estado'    => EstadoExpedienteEnum::class,
     ];
 
     public function administrado()
@@ -51,51 +54,59 @@ class Expediente extends Model
                     ->latest('created_at');
     }
 
-    /**
-     * Cuando cambie el estado del expediente, registramos una entrada en historial.
-     * Puedes llamar a este hook desde un Observer si prefieres separar responsabilidades.
-     */
     protected static function booted()
     {
         static::updated(function (Expediente $expediente) {
-            if ($expediente->wasChanged('id_estado')) {
-                $estado = $expediente->estado()->first();
-
-                $map = [
-                    'Recibido'    => ['titulo' => 'Recepción del expediente', 'tpl' => 'Recepción desde :origen - Bloque :bloque'],
-                    'En trámite'  => ['titulo' => 'Expediente en trámite',     'tpl' => 'El expediente avanza a "En trámite"'],
-                    'Derivado'    => ['titulo' => 'Derivación',                'tpl' => 'Derivado al área :area'],
-                    'Resolución'  => ['titulo' => 'Emisión de Resolución',     'tpl' => 'Se emitió resolución :numero'],
-                    'Cerrado'     => ['titulo' => 'Cierre de expediente',      'tpl' => 'Expediente cerrado'],
-                ];
-
-                $nombreEstado = $estado?->nombre ?? 'Estado actualizado';
-                $cfg = $map[$nombreEstado] ?? ['titulo' => $nombreEstado, 'tpl' => 'Estado cambiado a '.$nombreEstado];
-
-                $meta = [
-                    'origen' => request()->input('origen'),      
-                    'bloque' => request()->input('bloque'),       
-                    'area'   => request()->input('area'),
-                    'numero' => request()->input('numero_resolucion'),
-                ];
-
-                $descripcion = self::renderTpl($cfg['tpl'], $meta);
-
-                $expediente->historial()->create([
-                    'id_estado'  => $expediente->id_estado,
-                    'titulo'     => $cfg['titulo'],
-                    'descripcion'=> $descripcion,
-                    'meta'       => array_filter($meta, fn($v) => !is_null($v) && $v !== ''),
-                ]);
+            if (!$expediente->wasChanged('id_estado')) {
+                return;
             }
-        });
-    }
 
-    protected static function renderTpl(string $tpl, array $vars = []): string
-    {
-        return preg_replace_callback('/\:([a-zA-Z0-9_]+)/', function ($m) use ($vars) {
-            $key = $m[1];
-            return isset($vars[$key]) && $vars[$key] !== '' ? (string)$vars[$key] : $m[0];
-        }, $tpl);
+            $idEstadoAttr = $expediente->getAttribute('id_estado');
+            $idEstado = $idEstadoAttr instanceof EstadoExpedienteEnum
+                ? $idEstadoAttr->value
+                : (int) $idEstadoAttr;
+
+            $estado = $expediente->estado()->first(); 
+            $nombreEstado = $estado?->nombre ?? 'Estado actualizado';
+
+            $map = [
+                'En Proceso'                                 => ['titulo' => 'En Proceso',                                 'tpl' => 'Estado cambiado a En Proceso'],
+                'Esperando Apelación'                        => ['titulo' => 'Esperando Apelación',                        'tpl' => 'Queda a la espera de apelación'],
+                'Evaluando Reconsideración'                  => ['titulo' => 'Evaluando Reconsideración',                  'tpl' => 'En evaluación de reconsideración'],
+                'Elevado a Coactivo'                         => ['titulo' => 'Elevado a Coactivo',                         'tpl' => 'Elevado a Ejecución Coactiva'],
+                'Elevado a Gerencia de Seguridad Ciudadana'  => ['titulo' => 'Elevado a Gerencia Seg. Ciudadana',         'tpl' => 'Elevado a Gerencia de Seguridad Ciudadana'],
+                'Archivado'                                  => ['titulo' => 'Archivado',                                  'tpl' => 'Expediente archivado'],
+            ];
+            $cfg = $map[$nombreEstado] ?? ['titulo' => $nombreEstado, 'tpl' => 'Estado cambiado a '.$nombreEstado];
+
+            // Variables opcionales desde la request (si existen)
+            $metaInput = [
+                'origen' => request()->input('origen'),
+                'bloque' => request()->input('bloque'),
+                'area'   => request()->input('area'),
+                'numero' => request()->input('numero_resolucion'),
+            ];
+
+            // Render básico "plantilla"
+            $descripcion = preg_replace_callback('/\:([a-zA-Z0-9_]+)/', function ($m) use ($metaInput) {
+                $key = $m[1];
+                return isset($metaInput[$key]) && $metaInput[$key] !== '' ? (string) $metaInput[$key] : $m[0];
+            }, $cfg['tpl']);
+
+            // Solo incluimos columnas que EXISTAN en la tabla
+            $payload = [
+                'id_estado' => $idEstado,
+                'titulo'    => $cfg['titulo'],
+            ];
+
+            if (Schema::hasColumn('historial_expediente', 'descripcion')) {
+                $payload['descripcion'] = $descripcion;
+            }
+            if (Schema::hasColumn('historial_expediente', 'meta')) {
+                $payload['meta'] = array_filter($metaInput, fn($v) => $v !== null && $v !== '');
+            }
+
+            $expediente->historial()->create($payload);
+        });
     }
 }
