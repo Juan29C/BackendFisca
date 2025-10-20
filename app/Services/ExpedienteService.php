@@ -9,6 +9,9 @@ use App\Models\Expediente;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use App\Enums\EstadoExpedienteEnum as EE;
+use App\Exceptions\ExpedienteDuplicadoException;
+use App\Exceptions\RecursoNoCreadoException;
+use Illuminate\Database\QueryException;
 
 class ExpedienteService
 {
@@ -54,10 +57,53 @@ class ExpedienteService
         return $this->repository->paginateForList($filters, $perPage);
     }
 
-    public function crearConStoredProcedure(array $data): ?Expediente
+    public function crearConStoredProcedure(array $data): Expediente
     {
-        return $this->repository->createViaStoredProcedure($data);
+
+        $this->assertNumeroDisponible((int) $data['numero_expediente']);
+        
+        try {
+            $expediente = $this->repository->createViaStoredProcedure($data);
+        } catch (QueryException $e) {
+            $msg = $e->getMessage();
+            if (str_contains($msg, 'Duplicate entry') && str_contains($msg, 'expediente_codigo_unique')) {
+                throw new ExpedienteDuplicadoException('El código de expediente ya existe.');
+            }
+            if (str_contains($msg, 'Ya existe un expediente con el número')) {
+                throw new ExpedienteDuplicadoException($msg);
+            }
+            throw $e;
+        }
+
+        if (!$expediente) {
+            throw new RecursoNoCreadoException('No se pudo recuperar el expediente creado.');
+        }
+
+        return $expediente;
     }
+
+    private function assertNumeroDisponible(int $numero): void
+    {
+        $anio = now()->year;
+
+        // Prefijo sin espacios: "EXP-N°{numero}-{anio}"
+        $needle = "EXP-N°{$numero}-{$anio}";
+
+        // Quitamos espacios normales y no-breakings de la columna para comparar
+        $exists = DB::table('expediente')
+            ->whereRaw("
+            REPLACE(REPLACE(codigo_expediente, ' ', ''), ' ', '') LIKE CONCAT(?, '%')
+        ", [$needle])
+            ->exists();
+
+        if ($exists) {
+            throw new ExpedienteDuplicadoException(
+                "Ya existe un expediente con el número {$numero} en el año {$anio}."
+            );
+        }
+    }
+
+
 
     public function updateBasic(int $id, array $data): ?Expediente
     {
@@ -114,10 +160,10 @@ class ExpedienteService
             }
 
             $nuevo = $huboApelacion ? EE::ELEVADO_GERENCIA_SEGURIDAD_CIUD : EE::ELEVADO_COACTIVO;
-            $exp->id_estado = $nuevo; 
-            $exp->save();           
+            $exp->id_estado = $nuevo;
+            $exp->save();
 
-            return $exp->load(['administrado','estado','historial.estado']);
+            return $exp->load(['administrado', 'estado', 'historial.estado']);
         });
     }
 
@@ -140,8 +186,7 @@ class ExpedienteService
             $exp->id_estado = EE::EVALUANDO_RECONSIDERACION; // o ->value si no usas cast
             $exp->save(); // tu hook booted() registrará historial
 
-            return $exp->load(['administrado','estado','historial.estado']);
+            return $exp->load(['administrado', 'estado', 'historial.estado']);
         });
     }
-    
 }

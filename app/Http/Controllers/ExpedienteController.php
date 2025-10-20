@@ -19,32 +19,8 @@ class ExpedienteController extends Controller
 
     public function store(StoreExpedienteRequest $request): JsonResponse
     {
-        $data = $request->validated();
-
-        try {
-            $expediente = $this->service->crearConStoredProcedure($data);
-
-            if (!$expediente) {
-                return response()->json([
-                    'ok' => false,
-                    'message' => 'No se pudo recuperar el expediente creado.'
-                ], 500);
-            }
-
-            return (new ExpedienteResource($expediente))->response()->setStatusCode(201);
-        } catch (QueryException $e) {
-            return response()->json([
-                'ok'      => false,
-                'message' => 'Error al crear expediente',
-                'error'   => $e->getMessage(),
-            ], 422);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'ok'      => false,
-                'message' => 'Error inesperado',
-                'error'   => $e->getMessage(),
-            ], 500);
-        }
+        $expediente = $this->service->crearConStoredProcedure($request->validated());
+        return (new ExpedienteResource($expediente))->response()->setStatusCode(201);
     }
 
     public function show(int $id): JsonResponse
@@ -63,15 +39,8 @@ class ExpedienteController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $perPage = (int) $request->input('per_page', 10);
-        $filters = [
-            'q'         => $request->input('q'),
-            'estado_id' => $request->input('estado_id'),
-        ];
-
-        $page = $this->service->getAll();
-
-        return ExpedienteListResource::collection($page)->response();
+        $items = $this->service->getAll(); // <- trae todo con relaciones
+        return ExpedienteListResource::collection($items)->response();
     }
 
     public function update(UpdateExpedienteRequest $request, int $id): JsonResponse

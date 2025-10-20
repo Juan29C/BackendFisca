@@ -48,7 +48,13 @@ class ExpedienteRepository
 
     public function listAll(): Collection
     {
-        return $this->model->all();
+        return $this->model
+            ->with([
+                'administrado:id,dni,ruc,tipo,nombres,apellidos,razon_social,domicilio',
+                'estado:id,nombre'
+            ])
+            ->orderByDesc('id')
+            ->get(); // <- SIN filtros ni paginate
     }
 
     public function find(int $id): ?Expediente
