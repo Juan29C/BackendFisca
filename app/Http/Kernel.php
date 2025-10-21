@@ -5,7 +5,6 @@ namespace App\Http;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Foundation\Http\Middleware\ValidatePostSize;
-use Illuminate\Routing\Middleware\SubstituteBindings;
 
 // Middleware propios
 use App\Http\Middleware\ForceJsonResponse;
@@ -22,20 +21,7 @@ class Kernel extends HttpKernel
         ValidatePostSize::class,    
     ];
 
-    /**
-     * Grupos de middleware.
-     */
-    protected $middlewareGroups = [
-        'api' => [
-            ForceJsonResponse::class,      
-            'throttle:api',                 
-            SubstituteBindings::class,      
-        ],
-    ];
-
-
     protected $middlewareAliases = [
-        'jwt.auth'      => JWTAuthenticate::class,
         // Roles
         'fiscalizacion'  => FiscalizacionMiddleware::class,
         'coactivo'       => CoactivoMiddleware::class,

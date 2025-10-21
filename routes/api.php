@@ -7,21 +7,21 @@ use App\Http\Controllers\ResolucionController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WordController;
-
+use App\Http\Middleware\FiscalizacionMiddleware;
 
 // ===== Auth públicas =====
-Route::prefix('auth')->group(function () {
-    Route::post('register', [AuthController::class, 'register']); // usa RegisterRequest
-    Route::post('login',    [AuthController::class, 'login']);    // usa LoginRequest
-    // Para refresh con token en header Authorization Bearer {token}
-    Route::post('refresh',  [AuthController::class, 'refresh'])->middleware('jwt.auth');
-    Route::post('logout',   [AuthController::class, 'logout'])->middleware('jwt.auth');
-    Route::get('me',        [AuthController::class, 'me'])->middleware('jwt.auth');
+Route::prefix('user')->group(function () {
+    Route::post('register', [AuthController::class, 'register']); 
+    Route::post('login',    [AuthController::class, 'login']);    
 });
 
 
 // ===== Rutas v1 (Fiscalización) =====
-Route::prefix('v1')->middleware(['jwt.auth', 'fiscalizacion'])->group(function () {
+Route::prefix('v1/auth')->middleware([FiscalizacionMiddleware::class])->group(function () {
+    Route::get('me',        [AuthController::class, 'me']);
+    Route::post('refresh',  [AuthController::class, 'refresh']);
+    Route::post('logout',   [AuthController::class, 'logout']);
+    
     // Expedientes
     Route::post('expedientes', [ExpedienteController::class, 'store']);
     Route::get('expedientes', [ExpedienteController::class, 'index']);
