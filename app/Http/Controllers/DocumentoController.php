@@ -16,10 +16,8 @@ class DocumentoController extends Controller
 {
     public function __construct(private DocumentoService $service) {}
 
-    // POST /expedientes/{expediente}/documentos
     public function store(UploadExpedienteDocumentosRequest $request, Expediente $expediente): JsonResponse
     {
-        // No capturamos DocumentoDuplicadoException aquí para que la maneje el Handler global
         $documento = $this->service->uploadSingle($expediente, $request->validated());
 
         return response()->json([
@@ -29,7 +27,6 @@ class DocumentoController extends Controller
         ], 201);
     }
 
-    // GET /expedientes/{expediente}/documentos
     public function index(Expediente $expediente): JsonResponse
     {
         $docs = $expediente->documentos()->with('tipoDocumento')->latest('id')->get();
@@ -40,7 +37,6 @@ class DocumentoController extends Controller
         ]);
     }
 
-    // PATCH /documentos/{documento}
     public function patch(PatchDocumentoRequest $request, Documento $documento): JsonResponse
     {
         try {
@@ -59,7 +55,6 @@ class DocumentoController extends Controller
         }
     }
 
-    // ✅ DELETE /documentos/{documento}
     public function destroy(Documento $documento): JsonResponse
     {
         try {
