@@ -53,5 +53,24 @@ class DocumentoRepository
             ->exists();
     }
 
-    
+    // Verificar si ya hay archivo subido para ese documento
+    public function existsWithFileForDoc(int $expedienteId, int $tipoId, ?string $codigoDoc = null): bool
+    {
+        return $this->model->where('id_expediente', $expedienteId)
+            ->when($codigoDoc, fn($q) => $q->where('codigo_doc', $codigoDoc))
+            ->where('id_tipo', $tipoId)
+            ->whereNotNull('ruta')
+            ->exists();
+    }
+
+    // Buscar un documento “borrador” (sin archivo aún) para reutilizarlo
+    public function findDraftDoc(int $expedienteId, int $tipoId, ?string $codigoDoc = null): ?Documento
+    {
+        return $this->model->where('id_expediente', $expedienteId)
+            ->when($codigoDoc, fn($q) => $q->where('codigo_doc', $codigoDoc))
+            ->where('id_tipo', $tipoId)
+            ->whereNull('ruta')
+            ->latest('id')
+            ->first();
+    }
 }

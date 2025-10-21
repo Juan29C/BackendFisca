@@ -124,41 +124,61 @@ class DocumentoService
 
     public function uploadSingle(Expediente $expediente, array $data): Documento
     {
-        if ($this->repository->existsForExpedienteTipo($expediente->id, $data['id_tipo'])) {
-            throw new DocumentoDuplicadoException();
-        }
+        // 1) Validaciones de estado por tipo
+        $this->assertEstadoValidoParaTipo($expediente, (int) $data['id_tipo']);
 
-        $this->assertEstadoValidoParaTipo($expediente, (int)$data['id_tipo']);
+        // 2) Variables base
+        $tipoId    = (int) $data['id_tipo'];
+        $codigoDoc = $data['codigo_doc'] ?? null;
 
         DB::beginTransaction();
         $storedPath = null;
 
         try {
-            $adm = $expediente->administrado;
+            // 3) Si ya existe con archivo → duplicado
+            if ($this->repository->existsWithFileForDoc($expediente->id, $tipoId, $codigoDoc)) {
+                throw new DocumentoDuplicadoException();
+            }
+
+            // 4) Reutilizar un borrador (sin archivo) si existe
+            $documento = $this->repository->findDraftDoc($expediente->id, $tipoId, $codigoDoc);
+
+            // 5) Preparar ruta de guardado
+            $adm         = $expediente->administrado;
             $slugPersona = $adm?->ruc ?: $adm?->dni ?: ('expediente_' . $expediente->id);
             $baseFolder  = "expedientes/{$slugPersona}";
+            $filename    = Str::random(40) . '.pdf';
 
-            $filename   = Str::random(40) . '.pdf';
+            // 6) Subir archivo
             $storedPath = Storage::disk('public')->putFileAs($baseFolder, $data['file'], $filename);
 
-            $documento = $this->repository->create([
-                'id_expediente' => $expediente->id,
-                'id_tipo'       => $data['id_tipo'],
-                'codigo_doc'    => $data['codigo_doc'] ?? null,
-                'fecha_doc'     => $data['fecha_doc'] ?? null,
-                'descripcion'   => $data['descripcion'] ?? null,
-                'ruta'          => $storedPath,
-            ]);
+            // 7) Crear o actualizar el registro “borrador”
+            if ($documento) {
+                // Actualiza el borrador existente
+                $documento->fill([
+                    'fecha_doc'   => $data['fecha_doc'] ?? $documento->fecha_doc,
+                    'descripcion' => $data['descripcion'] ?? $documento->descripcion,
+                    'ruta'        => $storedPath,
+                ])->save();
+            } else {
+                // Crea uno nuevo (no existía nada)
+                $documento = $this->repository->create([
+                    'id_expediente' => $expediente->id,
+                    'id_tipo'       => $tipoId,
+                    'codigo_doc'    => $codigoDoc,
+                    'fecha_doc'     => $data['fecha_doc'] ?? null,
+                    'descripcion'   => $data['descripcion'] ?? null,
+                    'ruta'          => $storedPath,
+                ]);
+            }
 
             DB::commit();
             return $documento->fresh(['tipoDocumento']);
         } catch (\Throwable $e) {
             DB::rollBack();
-
             if ($storedPath) {
                 Storage::disk('public')->delete($storedPath);
             }
-
             throw $e;
         }
     }
