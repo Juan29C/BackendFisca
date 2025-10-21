@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ResolucionController;
@@ -8,12 +9,19 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WordController;
 
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// ===== Auth públicas =====
+Route::prefix('auth')->group(function () {
+    Route::post('register', [AuthController::class, 'register']); // usa RegisterRequest
+    Route::post('login',    [AuthController::class, 'login']);    // usa LoginRequest
+    // Para refresh con token en header Authorization Bearer {token}
+    Route::post('refresh',  [AuthController::class, 'refresh'])->middleware('jwt.auth');
+    Route::post('logout',   [AuthController::class, 'logout'])->middleware('jwt.auth');
+    Route::get('me',        [AuthController::class, 'me'])->middleware('jwt.auth');
+});
 
 
-Route::prefix('v1')->group(function () {
+// ===== Rutas v1 (Fiscalización) =====
+Route::prefix('v1')->middleware(['jwt.auth', 'fiscalizacion'])->group(function () {
     // Expedientes
     Route::post('expedientes', [ExpedienteController::class, 'store']);
     Route::get('expedientes', [ExpedienteController::class, 'index']);
@@ -26,15 +34,11 @@ Route::prefix('v1')->group(function () {
     // Documentos anidados en expediente
     Route::get('expedientes/{expediente}/documentos', [DocumentoController::class, 'index']);
     Route::post('expedientes/{expediente}/documentos', [DocumentoController::class, 'store']);
-        
 
-    // Resoluciones (si también son por expediente)
+    // Resoluciones por expediente
     Route::post('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'storeForExpediente']);
     Route::get('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'indexForExpediente']);
 
-    // Catálogo de tipos de documento
-    //Route::get('tipos-documentos', [TiposDocumentoController::class, 'index']);
-
-    // Listar plantillas de documentos
+    // Plantillas
     Route::get('plantillas', [WordController::class, 'listarPlantillas']);
 });

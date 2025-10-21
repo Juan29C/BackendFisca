@@ -2,49 +2,43 @@
 
 namespace App\Http;
 
-use App\Http\Middleware\ForceJsonResponse;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Http\Middleware\HandleCors;
+use Illuminate\Foundation\Http\Middleware\ValidatePostSize;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+
+// Middleware propios
+use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\FiscalizacionMiddleware;
+use App\Http\Middleware\CoactivoMiddleware;
+use App\Http\Middleware\JWTAuthenticate;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 
 class Kernel extends HttpKernel
 {
-    /**
-     * Middleware globales de la aplicación.
-     *
-     * @var array
-     */
+
     protected $middleware = [
-        // Manejo de CORS
-        \Illuminate\Http\Middleware\HandleCors::class,
-        // Validación del tamaño de las peticiones POST
-        \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
+        HandleCors::class,          
+        ValidatePostSize::class,    
     ];
 
     /**
-     * Grupos de middleware para diferentes tipos de rutas.
-     *
-     * @var array
+     * Grupos de middleware.
      */
     protected $middlewareGroups = [
         'api' => [
-            // Manejo de CORS para API
-            HandleCors::class,
-            // Forzar respuestas JSON
-            ForceJsonResponse::class,
-            // Limitar número de peticiones
-            'throttle:api',
-            // Inyección de dependencias en rutas
-            SubstituteBindings::class,
+            ForceJsonResponse::class,      
+            'throttle:api',                 
+            SubstituteBindings::class,      
         ],
     ];
 
-    /**
-     * Aliases de middleware para rutas individuales.
-     *
-     * @var array
-     */
+
     protected $middlewareAliases = [
-        'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        'jwt.auth'      => JWTAuthenticate::class,
+        // Roles
+        'fiscalizacion'  => FiscalizacionMiddleware::class,
+        'coactivo'       => CoactivoMiddleware::class,
+        'throttle'      => ThrottleRequests::class,
     ];
 }
