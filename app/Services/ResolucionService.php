@@ -23,6 +23,8 @@ class ResolucionService
     public function __construct(ResolucionRepository $repository)
     {
         $this->repository = $repository;
+        \Carbon\Carbon::setLocale('es');
+        setlocale(LC_TIME, 'es_ES.UTF-8', 'es_ES', 'es');
     }
 
     public function getAll(): Collection
@@ -50,9 +52,6 @@ class ResolucionService
         return $this->repository->delete($id);
     }
 
-    /**
-     * Crear Resolución vía SP y generar DOCX desde plantilla elegida.
-     */
     public function crearDesdeSpFromRequest(int $idExpediente, array $payload, string $templateKey): Resolucion
     {
         return DB::transaction(function () use ($idExpediente, $payload, $templateKey) {
@@ -114,7 +113,7 @@ class ResolucionService
             }
 
             // --- preparar variables para la plantilla ---
-            // numero_resolucion calculado de la misma forma que el SP:
+            // mismo número que usa el SP para la resolución subgerencial
             $numeroResolucion = $this->repository->numeroResolucionSubgerencial((int)$payload['codigo_resolucion']);
 
             // fecha/lugar desde BD si existen, fallback a hoy/Nuevo Chimbote
@@ -124,11 +123,13 @@ class ResolucionService
             // Administrado: nombre/razón + identificador
             [$nombreAdmin, $identificador] = $this->resolverAdministrado($expediente);
 
-            // VISTO (documentos en orden por fecha con long-date en español)
+            // VISTO (documentos en orden por fecha DESC con meses en español)
             $visto = $this->formatearVisto($documentos);
 
-            // Artículos dinámicos según tipo de resolución
-            [$art1, $art2, $art3] = $this->armarArticulos($tipoId, $expediente, $nombreAdmin, $identificador);
+            // 1er artículo (solo el fragmento inicial que irá antes de ", en atención...")
+            $textoResolucion = $this->textoResolucionInicial($tipoId, $nombreAdmin, $identificador);
+
+            $numeroExpediente = (string) ($expediente->codigo_expediente ?? '');
 
             // --- generar DOCX desde plantilla ---
             $relativeTemplate = config('templates.' . $templateKey); // p.ej. 'resolucion_no_ha_lugar.docx'
@@ -142,36 +143,41 @@ class ResolucionService
 
             $tp = new TemplateProcessor($templatePath);
 
-            // Placeholders esperados en el .docx:
-            // {{numero_resolucion}}, {{fecha_resolucion}}, {{lugar_emision}}
-            // {{documentos_visto}}
-            // {{articulo_primero}}, {{articulo_segundo}}, {{articulo_tercero}}
+            // Placeholders esperados en el .docx (TemplateProcessor usa ${...}):
+            // ${numero_resolucion}, ${fecha_resolucion}, ${lugar_emision}
+            // ${documentos_visto}
+            // ${textoResolucion}, ${numeroExpediente}, ${administrado}
 
             $tp->setValue('numero_resolucion', $numeroResolucion);
-            $tp->setValue('fecha_resolucion', $this->fechaLarga($fechaResolucion)); // ej: "21 de octubre del 2025"
+            $tp->setValue('fecha_resolucion', $this->fechaLarga($fechaResolucion));
             $tp->setValue('lugar_emision', $lugarEmision);
             $tp->setValue('documentos_visto', $visto);
-            $tp->setValue('articulo_primero', $art1);
-            $tp->setValue('articulo_segundo', $art2);
-            $tp->setValue('articulo_tercero', $art3);
+
+            // SE RESUELVE: variables pedidas
+            $tp->setValue('textoResolucion', $textoResolucion);
+            $tp->setValue('numeroExpediente', $numeroExpediente);
+            $tp->setValue('administrado', $nombreAdmin);
 
             // Nombre de archivo basado en numero_resolucion
-            $safeName = Str::of($numeroResolucion)->replace(['/', ' '], ['-', '-'])->value();
-            $fileName = "{$safeName}.docx";
+            $baseName = Str::of($numeroResolucion)
+                ->replace(['/', ' '], ['-', '-'])
+                ->upper()
+                ->value();
+            $fileName = "{$baseName}.docx";
 
             // Guardar en public/resoluciones para descarga
             $tmpPath = storage_path("app/tmp-{$fileName}");
             $tp->saveAs($tmpPath);
 
-            $publicRelPath = 'resoluciones/' . $fileName; // public disk
+            $publicRelPath = 'resoluciones/' . $fileName; // disk public
             Storage::disk('public')->put($publicRelPath, file_get_contents($tmpPath));
             @unlink($tmpPath);
 
             // URL pública (requiere storage:link)
             $fileUrl = Storage::url($publicRelPath);
 
-            // Adjunta el URL como atributo runtime para que el Resource pueda retornarlo
-            $res->setAttribute('file_url', $fileUrl);
+            // Adjuntar URL al modelo (no persistente) para que el Resource la exponga
+            $res->setAttribute('urlResolucion', $fileUrl);
 
             return $res;
         });
@@ -185,10 +191,12 @@ class ResolucionService
         if (!$adm) return ['', ''];
 
         if ($adm->tipo === 'juridica' && $adm->razon_social) {
-            $nombre = $adm->razon_social;
+            $nombre = Str::of($adm->razon_social)->upper()->value();
             $ident  = $adm->ruc ? ('RUC N° ' . $adm->ruc) : '';
         } else {
-            $nombre = trim(($adm->nombres ?? '') . ' ' . ($adm->apellidos ?? ''));
+            $nombre = Str::of(trim(($adm->nombres ?? '') . ' ' . ($adm->apellidos ?? '')))
+            ->upper()
+            ->value();
             $ident  = $adm->dni ? ('DNI N° ' . $adm->dni) : '';
         }
         return [$nombre, $ident];
@@ -198,43 +206,41 @@ class ResolucionService
     {
         if (empty($documentos)) return '';
 
-        // ordenar por fecha_doc ASC
-        usort($documentos, fn($a, $b) => strcmp($a['fecha_doc'], $b['fecha_doc']));
+        // ordenar DESC (más reciente primero)
+        usort($documentos, function ($a, $b) {
+            return strcmp($b['fecha_doc'], $a['fecha_doc']);
+        });
 
         $parts = [];
         foreach ($documentos as $d) {
             $fecha = Carbon::parse($d['fecha_doc']);
             $parts[] = "{$d['codigo_doc']} de fecha " . $this->fechaLarga($fecha);
         }
+
         // Unir con '; ' y cerrar con ';'
         return implode('; ', $parts) . ';';
     }
 
     private function fechaLarga(Carbon $date): string
     {
-        // "31 de julio del 2025"
-        // Nota: translatedFormat requiere setLocale('es')
-        return $date->translatedFormat('d \\d\\e F \\d\\e\\l Y');
+        // “05 de octubre del 2025” (con meses y días en español)
+        // isoFormat SÍ respeta [literales] y usa tokens tipo Moment.js
+        return $date->locale('es')->isoFormat('DD [de] MMMM [del] YYYY');
     }
 
+
     /**
-     * Construye textos de artículos según tipo de resolución.
-     * 1 = No ha lugar, 2 = Continuar / Imponer sanción (ajusta a tu catálogo real).
+     * Texto inicial del Artículo Primero según tipo.
+     * 1 = No ha lugar, 2 = Sanción (ajusta a tu catálogo real).
      */
-    private function armarArticulos(int $tipoId, Expediente $expediente, string $nombreAdmin, string $identificador): array
+    private function textoResolucionInicial(int $tipoId, string $nombreAdmin, string $identificador): string
     {
-        $codigoExp = $expediente->codigo_expediente ?? '';
         if ($tipoId === 1) {
-            $art1 = "DECLARAR NO HA LUGAR AL INICIO DEL PROCEDIMIENTO ADMINISTRATIVO SANCIONADOR al administrado {$nombreAdmin}, identificado con {$identificador}, en atención a que los hechos que meritaron la elaboración del acta de constatación e imputación de cargo no tienen la condición de infracción administrativa, considerando el Expediente Administrativo N° {$codigoExp}.";
-        } elseif ($tipoId === 2) {
-            $art1 = "IMPONER SANCIÓN a {$nombreAdmin}, identificado con {$identificador}, conforme a las consideraciones expuestas en la parte motiva de la presente resolución.";
-        } else {
-            $art1 = "DISPONER lo pertinente respecto del administrado {$nombreAdmin}, identificado con {$identificador}, de acuerdo con los considerandos de la presente resolución.";
+            return "DECLARAR NO HA LUGAR AL INICIO DEL PROCEDIMIENTO ADMINISTRATIVO SANCIONADOR al administrado {$nombreAdmin}, identificado con {$identificador}";
         }
-
-        $art2 = "RECOMENDAR al administrado {$nombreAdmin} a monitorear constantemente sus documentos municipales;";
-        $art3 = "NOTIFÍQUESE al administrado {$nombreAdmin};";
-
-        return [$art1, $art2, $art3];
+        if ($tipoId === 2) {
+            return "IMPONER SANCIÓN a {$nombreAdmin}, identificado con {$identificador}";
+        }
+        return "DISPONER lo pertinente respecto del administrado {$nombreAdmin}, identificado con {$identificador}";
     }
 }
