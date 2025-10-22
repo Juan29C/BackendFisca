@@ -8,11 +8,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WordController;
 use App\Http\Middleware\FiscalizacionMiddleware;
+use Doctrine\Inflector\Rules\Word;
 
 // ===== Auth públicas =====
 Route::prefix('user')->group(function () {
     Route::post('register', [AuthController::class, 'register']); 
-    Route::post('login',    [AuthController::class, 'login']);    
+    Route::post('login',    [AuthController::class, 'login']);
+    Route::get('plantillas', [WordController::class, 'listarPlantillas']);
 });
 
 
@@ -40,5 +42,5 @@ Route::prefix('v1/auth')->middleware([FiscalizacionMiddleware::class])->group(fu
     Route::get('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'indexForExpediente']);
 
     // Plantillas
-    Route::get('plantillas', [WordController::class, 'listarPlantillas']);
+    
 });

@@ -16,7 +16,7 @@ class StoreResolucionFromSpRequest extends FormRequest
         return [
             'codigo_resolucion'   => ['required', 'integer', 'min:1'],
             'id_tipo_resolucion'  => ['required', 'integer', 'min:1', 'exists:tipo_resolucion,id'],
-
+            'template'            => ['required', 'string', 'in:resolucionNoHaLugar,resolucionContinuar'],
             'documentos'                  => ['nullable', 'array'],
             'documentos.*.codigo_doc'     => ['required', 'string', 'max:150'],
             'documentos.*.fecha_doc'      => ['required', 'date_format:Y-m-d'],
@@ -43,6 +43,7 @@ class StoreResolucionFromSpRequest extends FormRequest
         return [
             'codigo_resolucion'  => 'código de resolución',
             'id_tipo_resolucion' => 'tipo de resolución',
+            'template'           => 'plantilla',
             'documentos'                     => 'documentos',
             'documentos.*.codigo_doc'        => 'código del documento',
             'documentos.*.fecha_doc'         => 'fecha del documento',

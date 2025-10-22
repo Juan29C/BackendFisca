@@ -41,9 +41,11 @@ class ResolucionController extends Controller
     // POST /api/expedientes/{id}/resoluciones
     public function storeForExpediente(StoreResolucionFromSpRequest $request, int $id): JsonResponse
     {
-        
-        $res = $this->service->crearDesdeSpFromRequest($id, $request->validated());
+        $validated = $request->validated();
+
+        $templateKey = $validated['template'];
+        $res = $this->service->crearDesdeSpFromRequest($id, $validated, $templateKey);
+
         return (new ResolucionResource($res))->response()->setStatusCode(201);
-       
     }
 }

@@ -33,6 +33,7 @@ class ResolucionResource extends JsonResource
                     ],
                 ])
             ),
+            'file_url' => $this->getAttribute('file_url'),
         ];
     }
 }

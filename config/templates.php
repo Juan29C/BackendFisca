@@ -2,7 +2,7 @@
 
 return [
   'reporte'    => 'plantilla_reporte.docx',
-  'resolucion' => 'aifis/resolucion_v1.docx',
-  'acta'       => 'actas/acta_constatacion_v2.docx',
+  'resolucionNoHaLugar' => 'resolucion_no_ha_lugar.docx',
+  'resolucionContinuar' => 'resolucion_continuar.docx',
 ];
     
