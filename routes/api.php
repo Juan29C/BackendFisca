@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ResolucionController;
+use App\Http\Controllers\TiposDocumentoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WordController;
@@ -42,5 +43,8 @@ Route::prefix('v1/auth')->middleware([FiscalizacionMiddleware::class])->group(fu
     Route::get('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'indexForExpediente']);
 
     // Plantillas
+
+    // Tipos de Documentos
+    Route::get('/tipos-documentos', [TiposDocumentoController::class, 'index']);
     
 });

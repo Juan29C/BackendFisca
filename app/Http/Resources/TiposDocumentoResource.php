@@ -15,9 +15,6 @@ class TiposDocumentoResource extends JsonResource
             'documentos'  => $this->whenLoaded('documentos', fn () =>
                 $this->documentos->pluck('id')
             ),
-
-            'created_at'  => optional($this->created_at)->toISOString(),
-            'updated_at'  => optional($this->updated_at)->toISOString(),
         ];
     }
 }
