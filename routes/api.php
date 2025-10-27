@@ -37,6 +37,8 @@ Route::prefix('v1/auth')->middleware([FiscalizacionMiddleware::class])->group(fu
     // Documentos anidados en expediente
     Route::get('expedientes/{expediente}/documentos', [DocumentoController::class, 'index']);
     Route::post('expedientes/{expediente}/documentos', [DocumentoController::class, 'store']);
+    Route::put('expedientes/{expediente}/documentos/{id}', [DocumentoController::class, 'patch']);
+    Route::delete('expedientes/{expediente}/documentos/{id}', [DocumentoController::class, 'destroy']);
 
     // Resoluciones por expediente
     Route::post('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'storeForExpediente']);

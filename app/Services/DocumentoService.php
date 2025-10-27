@@ -42,28 +42,61 @@ class DocumentoService
         return $this->repository->update($id, $data);
     }
 
+    private function buildBaseFolderFromDocumento(\App\Models\Documento $documento): string
+    {
+        // Carga el expediente con su administrado para armar el slugPersona
+        $expediente = \App\Models\Expediente::with('administrado')
+            ->find($documento->id_expediente);
+
+        $adm = $expediente?->administrado;
+        $slugPersona = $adm?->ruc ?: ($adm?->dni ?: ('expediente_' . $documento->id_expediente));
+
+        return "expedientes/{$slugPersona}";
+    }
+
     public function updateDocumento(int $id, array $data): Documento
     {
         DB::beginTransaction();
+
         try {
             $documento = $this->repository->find($id);
             if (!$documento) {
                 throw new \Exception("Documento no encontrado");
             }
 
-            // Si viene un nuevo archivo, reemplazarlo
-            if (isset($data['file']) && $data['file']->isValid()) {
-                if ($documento->ruta && Storage::disk('public')->exists($documento->ruta)) {
+            // ¿viene archivo?
+            $hasFile = isset($data['file'])
+                && $data['file'] instanceof \Illuminate\Http\UploadedFile
+                && $data['file']->isValid();
+
+            if ($hasFile) {
+                // 1) Reemplazo: borrar archivo anterior si existía
+                if (!empty($documento->ruta) && Storage::disk('public')->exists($documento->ruta)) {
                     Storage::disk('public')->delete($documento->ruta);
                 }
 
-                $baseFolder = dirname($documento->ruta);
-                $filename   = Str::random(40) . '.pdf';
-                $storedPath = Storage::disk('public')->putFileAs($baseFolder, $data['file'], $filename);
-                $data['ruta'] = $storedPath;
+                // 2) Misma ruta que uploadSingle: expedientes/{dni|ruc|expediente_id}
+                $baseFolder = $this->buildBaseFolderFromDocumento($documento);
+
+                // Asegurar carpeta (opcional, por si tu driver lo requiere)
+                if (!Storage::disk('public')->exists($baseFolder)) {
+                    Storage::disk('public')->makeDirectory($baseFolder);
+                }
+
+                // 3) Guardar nuevo archivo
+                $ext = strtolower($data['file']->getClientOriginalExtension() ?: 'pdf');
+                $filename = Str::random(40) . '.' . $ext;
+
+                // putFileAs sobreescribe si existe el mismo nombre; como es aleatorio no colisiona
+                Storage::disk('public')->putFileAs($baseFolder, $data['file'], $filename);
+
+                // Guardar ruta normalizada (sin './')
+                $data['ruta'] = $baseFolder . '/' . $filename;
             }
 
-            unset($data['file']);
+            unset($data['file']); // nunca persistimos UploadedFile
+
+            // Importante: asegurar que 'ruta' esté en $fillable o permitido por tu repositorio
             $this->repository->update($id, $data);
 
             DB::commit();
@@ -142,7 +175,7 @@ class DocumentoService
             $adm         = $expediente->administrado;
             $slugPersona = $adm?->ruc ?: $adm?->dni ?: ('expediente_' . $expediente->id);
             $baseFolder  = "expedientes/{$slugPersona}";
-            
+
             $originalExtension = $data['file']->getClientOriginalExtension();
             $filename = Str::random(40) . '.' . $originalExtension;
 

@@ -37,10 +37,10 @@ class DocumentoController extends Controller
         ]);
     }
 
-    public function patch(PatchDocumentoRequest $request, Documento $documento): JsonResponse
+    public function patch(PatchDocumentoRequest $request, int $expediente, int $id): JsonResponse
     {
         try {
-            $updated = $this->service->updateDocumento($documento->id, $request->validated());
+            $updated = $this->service->updateDocumento($id, $request->validated());
 
             return response()->json([
                 'ok'      => true,
