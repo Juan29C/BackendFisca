@@ -17,6 +17,7 @@ class Expediente extends Model
     protected $fillable = [
         'codigo_expediente',
         'fecha_inicio',
+        'fecha_vencimiento',
         'id_administrado',
         'id_estado',
     ];
@@ -25,6 +26,7 @@ class Expediente extends Model
     
     protected $casts = [
         'fecha_inicio' => 'date', 
+        'fecha_vencimiento' => 'date',
         'id_estado'    => EstadoExpedienteEnum::class,
     ];
 

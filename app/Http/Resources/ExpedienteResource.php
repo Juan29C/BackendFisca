@@ -12,6 +12,7 @@ class ExpedienteResource extends JsonResource
             'id'                => $this->id,
             'codigo_expediente' => $this->codigo_expediente,
             'fecha_inicio'      => $this->fecha_inicio?->format('Y-m-d'),
+            'fecha_vencimiento' => $this->fecha_vencimiento?->format('Y-m-d'),
             'estado'            => $this->whenLoaded('estado', fn () => [
                 'id'     => $this->estado->id,
                 'nombre' => $this->estado->nombre ?? null,
