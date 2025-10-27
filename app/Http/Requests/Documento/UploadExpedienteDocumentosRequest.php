@@ -16,7 +16,7 @@ class UploadExpedienteDocumentosRequest extends FormRequest
             'codigo_doc'  => ['nullable', 'string', 'max:100'],
             'fecha_doc'   => ['nullable', 'date'],
             'descripcion' => ['nullable', 'string', 'max:65535'],
-            'file'        => ['required', 'file', 'mimes:pdf', 'max:20480'], // 20 MB
+            'file'        => ['required', 'file', 'mimes:pdf,docx,xlsx', 'max:20480'],
         ];
     }
 

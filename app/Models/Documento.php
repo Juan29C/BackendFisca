@@ -24,6 +24,10 @@ class Documento extends Model
         'ruta',
     ];
 
+    protected $casts = [
+        'fecha_doc' => 'date',
+    ];
+
     // Relaciones
 
     public function expediente()

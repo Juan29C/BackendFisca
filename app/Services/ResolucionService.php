@@ -66,7 +66,7 @@ class ResolucionService
                 throw new \DomainException('Tipo de resolución no encontrado');
             }
 
-            // --- validar documentos del payload ---
+            // --- validar documentos del payload (como ya lo tienes) ---
             $documentos = array_values(array_filter($payload['documentos'] ?? [], function ($d) {
                 return isset($d['codigo_doc'], $d['fecha_doc'], $d['id_tipo'])
                     && $d['codigo_doc'] !== ''
@@ -81,8 +81,8 @@ class ResolucionService
                         $idsPorIndice[$idx] = (int) $doc['id_tipo'];
                     }
                 }
-                $idsTipo    = array_values(array_unique(array_values($idsPorIndice)));
-                $idsValidos = TiposDocumento::whereIn('id', $idsTipo)->pluck('id')->all();
+                $idsTipo     = array_values(array_unique(array_values($idsPorIndice)));
+                $idsValidos  = TiposDocumento::whereIn('id', $idsTipo)->pluck('id')->all();
                 $idsInvalidos = array_values(array_diff($idsTipo, $idsValidos));
 
                 if (!empty($idsInvalidos)) {
@@ -112,27 +112,35 @@ class ResolucionService
                 throw new RuntimeException('No se pudo recuperar la resolución creada.');
             }
 
+            // Fallback: si tu SP aún no persiste fecha_doc, actualiza aquí:
+            if (!empty($documentos)) {
+                foreach ($documentos as $d) {
+                    DB::table('documento')
+                        ->where('id_expediente', $idExpediente)
+                        ->where('id_tipo', (int)$d['id_tipo'])
+                        ->where('codigo_doc', $d['codigo_doc'])
+                        ->whereNull('fecha_doc')
+                        ->update(['fecha_doc' => $d['fecha_doc']]); // 'Y-m-d'
+                }
+            }
+
+            // Cargar relaciones para resource y para VISTO
+            $res->load(['tipoResolucion', 'documentos.tipoDocumento']);
+
             // --- preparar variables para la plantilla ---
-            // mismo número que usa el SP para la resolución subgerencial
             $numeroResolucion = $this->repository->numeroResolucionSubgerencial((int)$payload['codigo_resolucion']);
-
-            // fecha/lugar desde BD si existen, fallback a hoy/Nuevo Chimbote
-            $fechaResolucion = $res->fecha ? Carbon::parse($res->fecha) : Carbon::today();
-            $lugarEmision    = $res->lugar_emision ?: 'Nuevo Chimbote';
-
-            // Administrado: nombre/razón + identificador
+            $fechaResolucion  = $res->fecha ? Carbon::parse($res->fecha) : Carbon::today();
+            $lugarEmision     = $res->lugar_emision ?: 'Nuevo Chimbote';
             [$nombreAdmin, $identificador] = $this->resolverAdministrado($expediente);
 
-            // VISTO (documentos en orden por fecha DESC con meses en español)
-            $visto = $this->formatearVisto($documentos);
+            // VISTO desde modelos (incluye tipo y fecha formateada)
+            $visto = $this->formatearVistoFromModels($res->documentos);
 
-            // 1er artículo (solo el fragmento inicial que irá antes de ", en atención...")
-            $textoResolucion = $this->textoResolucionInicial($tipoId, $nombreAdmin, $identificador);
-
+            $textoResolucion  = $this->textoResolucionInicial($tipoId, $nombreAdmin, $identificador);
             $numeroExpediente = (string) ($expediente->codigo_expediente ?? '');
 
             // --- generar DOCX desde plantilla ---
-            $relativeTemplate = config('templates.' . $templateKey); // p.ej. 'resolucion_no_ha_lugar.docx'
+            $relativeTemplate = config('templates.' . $templateKey);
             if (!$relativeTemplate) {
                 throw new \InvalidArgumentException('Plantilla no registrada.');
             }
@@ -142,30 +150,17 @@ class ResolucionService
             }
 
             $tp = new TemplateProcessor($templatePath);
-
-            // Placeholders esperados en el .docx (TemplateProcessor usa ${...}):
-            // ${numero_resolucion}, ${fecha_resolucion}, ${lugar_emision}
-            // ${documentos_visto}
-            // ${textoResolucion}, ${numeroExpediente}, ${administrado}
-
             $tp->setValue('numero_resolucion', $numeroResolucion);
             $tp->setValue('fecha_resolucion', $this->fechaLarga($fechaResolucion));
             $tp->setValue('lugar_emision', $lugarEmision);
             $tp->setValue('documentos_visto', $visto);
-
-            // SE RESUELVE: variables pedidas
             $tp->setValue('textoResolucion', $textoResolucion);
             $tp->setValue('numeroExpediente', $numeroExpediente);
             $tp->setValue('administrado', $nombreAdmin);
 
-            // Nombre de archivo basado en numero_resolucion
-            $baseName = Str::of($numeroResolucion)
-                ->replace(['/', ' '], ['-', '-'])
-                ->upper()
-                ->value();
+            $baseName = Str::of($numeroResolucion)->replace(['/', ' '], ['-', '-'])->upper()->value();
             $fileName = "{$baseName}.docx";
 
-            // Guardar en public/resoluciones para descarga
             $tmpPath = storage_path("app/tmp-{$fileName}");
             $tp->saveAs($tmpPath);
 
@@ -173,16 +168,13 @@ class ResolucionService
             Storage::disk('public')->put($publicRelPath, file_get_contents($tmpPath));
             @unlink($tmpPath);
 
-            // URL pública (requiere storage:link)
             $fileUrl = Storage::url($publicRelPath);
-
-            // Adjuntar URL al modelo (no persistente) para que el Resource la exponga
             $res->setAttribute('urlResolucion', $fileUrl);
 
             return $res;
         });
     }
-
+    
     // ----------------- Helpers -----------------
 
     private function resolverAdministrado(Expediente $expediente): array
@@ -195,31 +187,38 @@ class ResolucionService
             $ident  = $adm->ruc ? ('RUC N° ' . $adm->ruc) : '';
         } else {
             $nombre = Str::of(trim(($adm->nombres ?? '') . ' ' . ($adm->apellidos ?? '')))
-            ->upper()
-            ->value();
+                ->upper()
+                ->value();
             $ident  = $adm->dni ? ('DNI N° ' . $adm->dni) : '';
         }
         return [$nombre, $ident];
     }
 
-    private function formatearVisto(array $documentos): string
+    private function formatearVistoFromModels($docs): string
     {
-        if (empty($documentos)) return '';
+        if (!$docs || $docs->isEmpty()) return '';
 
-        // ordenar DESC (más reciente primero)
-        usort($documentos, function ($a, $b) {
-            return strcmp($b['fecha_doc'], $a['fecha_doc']);
+        // Ordenar DESC por fecha (nulos al final)
+        $sorted = $docs->sortByDesc(function ($d) {
+            return $d->fecha_doc ? $d->fecha_doc->format('Y-m-d') : '0000-00-00';
         });
 
         $parts = [];
-        foreach ($documentos as $d) {
-            $fecha = Carbon::parse($d['fecha_doc']);
-            $parts[] = "{$d['codigo_doc']} de fecha " . $this->fechaLarga($fecha);
+        foreach ($sorted as $d) {
+            $tipo   = optional($d->tipoDocumento)->descripcion ?: 'Documento';
+            $codigo = $d->codigo_doc ?? '';
+            $hasN   = preg_match('/\bN[°º\.]?\b/i', $codigo);
+            $pref   = $hasN ? '' : 'N° ';
+            $fecha  = $d->fecha_doc
+                ? $this->fechaLarga(\Carbon\Carbon::parse($d->fecha_doc))
+                : 's/f';
+
+            $parts[] = "{$tipo} {$pref}{$codigo} de fecha {$fecha}";
         }
 
-        // Unir con '; ' y cerrar con ';'
         return implode('; ', $parts) . ';';
     }
+
 
     private function fechaLarga(Carbon $date): string
     {

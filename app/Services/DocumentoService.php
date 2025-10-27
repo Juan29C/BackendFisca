@@ -142,7 +142,9 @@ class DocumentoService
             $adm         = $expediente->administrado;
             $slugPersona = $adm?->ruc ?: $adm?->dni ?: ('expediente_' . $expediente->id);
             $baseFolder  = "expedientes/{$slugPersona}";
-            $filename    = Str::random(40) . '.pdf';
+            
+            $originalExtension = $data['file']->getClientOriginalExtension();
+            $filename = Str::random(40) . '.' . $originalExtension;
 
             $storedPath = Storage::disk('public')->putFileAs($baseFolder, $data['file'], $filename);
 
