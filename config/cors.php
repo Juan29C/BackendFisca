@@ -16,13 +16,15 @@ return [
     ],
 
     // Headers permitidos
-    'allowed_headers' => [
+    'allowed_headers' => ['*'],
+    /*'allowed_headers' => [
         'Accept',
         'Content-Type',
         'X-Requested-With',
         'X-CSRF-TOKEN',
         'X-XSRF-TOKEN',
     ],
+    */
 
     'exposed_headers' => [],
 
