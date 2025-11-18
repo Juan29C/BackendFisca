@@ -38,7 +38,7 @@ class ResolucionController extends Controller
         }
     }
 
-    // POST /api/expedientes/{id}/resoluciones
+    // POST /api/expedientes/{id}/resoluciones - Crear resolución 
     public function storeForExpediente(StoreResolucionFromSpRequest $request, int $id): JsonResponse
     {
         $validated = $request->validated();
