@@ -45,6 +45,11 @@ class Expediente extends Model
         return $this->hasMany(Documento::class, 'id_expediente', 'id');
     }
 
+    public function coactivos()
+    {
+        return $this->hasMany(Coactivo::class, 'id_expediente', 'id');
+    }
+
     public function resoluciones()
     {
         return $this->hasMany(Resolucion::class, 'id_expediente', 'id');

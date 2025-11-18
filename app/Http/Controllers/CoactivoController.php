@@ -1,0 +1,109 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Services\CoactivoService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class CoactivoController extends Controller
+{
+    public function __construct(private CoactivoService $service) {}
+
+    public function index(Request $request): JsonResponse
+    {
+        $filters = [
+            'q' => $request->input('q'),
+            'estado' => $request->input('estado'),
+        ];
+        
+        $perPage = (int) $request->input('per_page', 10);
+        
+        $coactivos = $this->service->paginate($filters, $perPage);
+
+        return response()->json([
+            'ok' => true,
+            'data' => $coactivos,
+        ]);
+    }
+
+    public function show(int $id): JsonResponse
+    {
+        $coactivo = $this->service->getDetailed($id);
+        
+        if (!$coactivo) {
+            return response()->json(['message' => 'Coactivo no encontrado'], 404);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'data' => $coactivo,
+        ]);
+    }
+
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'codigo_expediente_coactivo' => 'required|string|max:100|unique:coactivos,codigo_expediente_coactivo',
+            'id_expediente' => 'required|integer|exists:expediente,id',
+            'ejecutor_coactivo' => 'required|string|max:200',
+            'auxiliar_coactivo' => 'nullable|string|max:200',
+            'fecha_inicio' => 'nullable|date',
+            'monto_deuda' => 'nullable|numeric|min:0',
+            'monto_costas' => 'nullable|numeric|min:0',
+            'monto_gastos_admin' => 'nullable|numeric|min:0',
+            'estado' => 'nullable|string|max:100',
+            'observaciones' => 'nullable|string',
+        ]);
+
+        $coactivo = $this->service->create($validated);
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Coactivo creado correctamente',
+            'data' => $coactivo,
+        ], 201);
+    }
+
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'codigo_expediente_coactivo' => 'sometimes|string|max:100|unique:coactivos,codigo_expediente_coactivo,' . $id . ',id_coactivo',
+            'id_expediente' => 'sometimes|integer|exists:expediente,id',
+            'ejecutor_coactivo' => 'sometimes|string|max:200',
+            'auxiliar_coactivo' => 'nullable|string|max:200',
+            'fecha_inicio' => 'nullable|date',
+            'monto_deuda' => 'nullable|numeric|min:0',
+            'monto_costas' => 'nullable|numeric|min:0',
+            'monto_gastos_admin' => 'nullable|numeric|min:0',
+            'estado' => 'nullable|string|max:100',
+            'observaciones' => 'nullable|string',
+        ]);
+
+        $coactivo = $this->service->update($id, $validated);
+
+        if (!$coactivo) {
+            return response()->json(['message' => 'Coactivo no encontrado'], 404);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Coactivo actualizado correctamente',
+            'data' => $coactivo,
+        ]);
+    }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $deleted = $this->service->delete($id);
+
+        if (!$deleted) {
+            return response()->json(['message' => 'Coactivo no encontrado'], 404);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Coactivo eliminado correctamente',
+        ]);
+    }
+}

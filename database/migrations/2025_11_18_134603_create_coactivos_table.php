@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 class CreateCoactivosTable extends Migration
 {
@@ -17,11 +18,11 @@ class CreateCoactivosTable extends Migration
             $table->increments('id_coactivo');
             $table->string('codigo_expediente_coactivo', 100)->unique();
             
-            // FK a administrado
-            $table->unsignedInteger('id_administrado');
-            $table->foreign('id_administrado')
+            // FK a expediente
+            $table->unsignedInteger('id_expediente');
+            $table->foreign('id_expediente')
                   ->references('id')
-                  ->on('administrado')
+                  ->on('expediente')
                   ->onDelete('restrict'); 
 
             $table->string('ejecutor_coactivo', 200);
