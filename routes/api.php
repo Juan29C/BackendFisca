@@ -5,6 +5,7 @@ use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ResolucionController;
 use App\Http\Controllers\TiposDocumentoController;
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WordController;
@@ -13,7 +14,8 @@ use Doctrine\Inflector\Rules\Word;
 
 // ===== Auth públicas =====
 Route::prefix('user')->group(function () {
-    Route::post('register', [AuthController::class, 'register']); 
+    Route::post('register', [UserController::class, 'store']);
+    Route::get('usuarios', [UserController::class, 'index']);
     Route::post('login',    [AuthController::class, 'login']);
     Route::get('plantillas', [WordController::class, 'listarPlantillas']);
 });
