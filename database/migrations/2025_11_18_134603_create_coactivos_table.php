@@ -27,7 +27,7 @@ class CreateCoactivosTable extends Migration
 
             $table->string('ejecutor_coactivo', 200);
             $table->string('auxiliar_coactivo', 200)->nullable();
-            $table->date('fecha_inicio')->default(DB::raw('CURRENT_DATE()'));
+            $table->date('fecha_inicio')->nullable();
 
             // Montos
             $table->decimal('monto_deuda', 10, 2)->default(0.00);
