@@ -43,6 +43,12 @@ class ExpedienteController extends Controller
         return ExpedienteListResource::collection($items)->response();
     }
 
+    public function elevadosCoactivo(): JsonResponse
+    {
+        $items = $this->service->getElevadosCoactivo();
+        return ExpedienteListResource::collection($items)->response();
+    }
+
     public function update(UpdateExpedienteRequest $request, int $id): JsonResponse
     {
         $exp = $this->service->updateBasic($id, $request->validated());

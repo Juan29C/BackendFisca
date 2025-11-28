@@ -27,6 +27,11 @@ class ExpedienteService
         return $this->repository->listAll();
     }
 
+    public function getElevadosCoactivo(): Collection
+    {
+        return $this->repository->listByEstado(EE::ELEVADO_COACTIVO->value);
+    }
+
     public function getById(int $id): ?Expediente
     {
         return $this->repository->find($id);

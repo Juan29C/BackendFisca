@@ -30,6 +30,7 @@ Route::prefix('v1/auth')->middleware([FiscalizacionMiddleware::class])->group(fu
     // Expedientes
     Route::post('expedientes', [ExpedienteController::class, 'store']);
     Route::get('expedientes', [ExpedienteController::class, 'index']);
+    Route::get('expedientes/elevados-coactivo', [ExpedienteController::class, 'elevadosCoactivo']);
     Route::get('expedientes/{id}', [ExpedienteController::class, 'show']);
     Route::put('expedientes/{id}', [ExpedienteController::class, 'update']);
     Route::delete('expedientes/{id}', [ExpedienteController::class, 'destroy']);
