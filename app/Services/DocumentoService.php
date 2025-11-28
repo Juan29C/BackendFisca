@@ -54,7 +54,7 @@ class DocumentoService
         return "expedientes/{$slugPersona}";
     }
 
-    public function updateDocumento(int $id, array $data): Documento
+    public function updateDocumento(int $id, array $data, ?int $expedienteId = null): Documento
     {
         DB::beginTransaction();
 
@@ -62,6 +62,11 @@ class DocumentoService
             $documento = $this->repository->find($id);
             if (!$documento) {
                 throw new \Exception("Documento no encontrado");
+            }
+
+            // Validar que el documento pertenece al expediente si se proporciona
+            if ($expedienteId !== null && $documento->id_expediente !== $expedienteId) {
+                throw new \Exception("El documento no pertenece al expediente especificado");
             }
 
             // ¿viene archivo?
@@ -109,11 +114,16 @@ class DocumentoService
 
 
     // ✅ Eliminar documento (y borrar archivo físico)
-    public function deleteDocumento(int $id): bool
+    public function deleteDocumento(int $id, ?int $expedienteId = null): bool
     {
         $documento = $this->repository->find($id);
         if (!$documento) {
             throw new \Exception("Documento no encontrado");
+        }
+
+        // Validar que el documento pertenece al expediente si se proporciona
+        if ($expedienteId !== null && $documento->id_expediente !== $expedienteId) {
+            throw new \Exception("El documento no pertenece al expediente especificado");
         }
 
         // Eliminar archivo físico si existe

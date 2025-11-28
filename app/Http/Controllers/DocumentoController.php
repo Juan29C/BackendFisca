@@ -40,7 +40,8 @@ class DocumentoController extends Controller
     public function patch(PatchDocumentoRequest $request, int $expediente, int $id): JsonResponse
     {
         try {
-            $updated = $this->service->updateDocumento($id, $request->validated());
+            // Validar que el documento pertenece al expediente
+            $updated = $this->service->updateDocumento($id, $request->validated(), $expediente);
 
             return response()->json([
                 'ok'      => true,
@@ -55,10 +56,11 @@ class DocumentoController extends Controller
         }
     }
 
-    public function destroy(Documento $documento): JsonResponse
+    public function destroy(int $expediente, int $id): JsonResponse
     {
         try {
-            $this->service->deleteDocumento($documento->id);
+            // Validar que el documento pertenece al expediente
+            $this->service->deleteDocumento($id, $expediente);
 
             return response()->json([
                 'ok'      => true,
