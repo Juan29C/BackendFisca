@@ -57,6 +57,18 @@ class ExpedienteRepository
             ->get();
     }
 
+    public function listByEstado(int $estadoId): Collection
+    {
+        return $this->model
+            ->with([
+                'administrado:id,dni,ruc,tipo,nombres,apellidos,razon_social,domicilio',
+                'estado:id,nombre'
+            ])
+            ->where('id_estado', $estadoId)
+            ->orderByDesc('id')
+            ->get();
+    }
+
     public function find(int $id): ?Expediente
     {
         return $this->model->find($id);

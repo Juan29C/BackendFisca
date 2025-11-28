@@ -9,7 +9,9 @@ use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\WordController;
+use App\Http\Middleware\CoactivoMiddleware;
 use App\Http\Middleware\FiscalizacionMiddleware;
+use App\Models\Coactivo;
 use Doctrine\Inflector\Rules\Word;
 
 // ===== Auth públicas =====
@@ -30,6 +32,40 @@ Route::prefix('v1/auth')->middleware([FiscalizacionMiddleware::class])->group(fu
     // Expedientes
     Route::post('expedientes', [ExpedienteController::class, 'store']);
     Route::get('expedientes', [ExpedienteController::class, 'index']);
+    Route::get('expedientes/elevados-coactivo', [ExpedienteController::class, 'elevadosCoactivo']);
+    Route::get('expedientes/{id}', [ExpedienteController::class, 'show']);
+    Route::put('expedientes/{id}', [ExpedienteController::class, 'update']);
+    Route::delete('expedientes/{id}', [ExpedienteController::class, 'destroy']);
+    Route::post('expedientes/{id}/apelacion', [ExpedienteController::class, 'resolverApelacion']);
+    Route::post('expedientes/{id}/reconsideracion', [ExpedienteController::class, 'iniciarReconsideracion']);
+
+    // Documentos anidados en expediente
+    Route::get('expedientes/{expediente}/documentos', [DocumentoController::class, 'index']);
+    Route::post('expedientes/{expediente}/documentos', [DocumentoController::class, 'store']);
+    Route::put('expedientes/{expediente}/documentos/{id}', [DocumentoController::class, 'patch']);
+    Route::delete('expedientes/{expediente}/documentos/{id}', [DocumentoController::class, 'destroy']);
+
+    // Resoluciones por expediente
+    Route::post('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'storeForExpediente']);
+    Route::get('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'indexForExpediente']);
+
+    // Plantillas
+
+    // Tipos de Documentos
+    Route::get('/tipos-documentos', [TiposDocumentoController::class, 'index']);
+    
+});
+
+// ===== Rutas v1 (Fiscalización) =====
+Route::prefix('v1/auth')->middleware([CoactivoMiddleware::class])->group(function () {
+    Route::get('me',        [AuthController::class, 'me']);
+    Route::post('refresh',  [AuthController::class, 'refresh']);
+    Route::post('logout',   [AuthController::class, 'logout']);
+    
+    // Expedientes
+    Route::post('expedientes', [ExpedienteController::class, 'store']);
+    Route::get('expedientes', [ExpedienteController::class, 'index']);
+    Route::get('expedientes/elevados-coactivo', [ExpedienteController::class, 'elevadosCoactivo']);
     Route::get('expedientes/{id}', [ExpedienteController::class, 'show']);
     Route::put('expedientes/{id}', [ExpedienteController::class, 'update']);
     Route::delete('expedientes/{id}', [ExpedienteController::class, 'destroy']);
