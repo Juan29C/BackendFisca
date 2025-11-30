@@ -71,6 +71,9 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
     // Coactivos - Vincular expediente (Solo Coactivo puede crear)
     Route::post('/coactivos/vincular-expediente', [CoactivoController::class, 'vincularExpediente'])->middleware(['coactivo']);
     
+    // Coactivos - Verificar vinculación de expediente
+    Route::get('/coactivos/verificar-vinculacion/{idExpediente}', [CoactivoController::class, 'verificarVinculacion'])->middleware(['multi.role:fiscalizacion,coactivo']);
+    
     // Coactivos - Lectura: Ambos roles
     Route::get('/coactivos', [CoactivoController::class, 'index'])->middleware(['multi.role:fiscalizacion,coactivo']);
     Route::get('/coactivos/{id}', [CoactivoController::class, 'show'])->middleware(['multi.role:fiscalizacion,coactivo']);

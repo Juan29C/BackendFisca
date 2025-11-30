@@ -129,4 +129,27 @@ class CoactivoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Verifica si un expediente ya está vinculado a un coactivo
+     * GET /coactivos/verificar-vinculacion/{idExpediente}
+     */
+    public function verificarVinculacion(int $idExpediente): JsonResponse
+    {
+        $coactivo = $this->service->getByExpedienteId($idExpediente);
+
+        if ($coactivo) {
+            return response()->json([
+                'ok' => true,
+                'vinculado' => true,
+                'data' => new CoactivoListResource($coactivo),
+            ]);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'vinculado' => false,
+            'data' => null,
+        ]);
+    }
 }

@@ -66,6 +66,25 @@ class CoactivoService
      */
     public function vincularExpedienteCoactivo(array $data): array
     {
+        $idExpediente = $data['id_expediente'];
+        $year = now()->year;
+        $correlativo = $data['correlativo'];
+
+        // Validar que el expediente no esté ya vinculado a un coactivo
+        if ($this->repository->existsByExpedienteId($idExpediente)) {
+            throw new \Exception(
+                "El expediente con ID {$idExpediente} ya está vinculado a un expediente coactivo."
+            );
+        }
+
+        // Validar que no exista el correlativo para el año actual
+        if ($this->repository->existsByCorrelativoAndYear($correlativo, $year)) {
+            throw new \Exception(
+                "Ya existe un expediente coactivo con el correlativo {$correlativo} para el año {$year}. " .
+                "El código " . str_pad($correlativo, 4, '0', STR_PAD_LEFT) . "-N-{$year}-MDNCH-GEC ya está en uso."
+            );
+        }
+
         return $this->repository->crearExpedienteCoactivoConSP($data);
     }
 
@@ -75,5 +94,13 @@ class CoactivoService
     public function getAllWithRelations(): Collection
     {
         return $this->repository->getAllForList();
+    }
+
+    /**
+     * Obtiene un coactivo por ID de expediente
+     */
+    public function getByExpedienteId(int $idExpediente): ?Coactivo
+    {
+        return $this->repository->findByExpedienteId($idExpediente);
     }
 }

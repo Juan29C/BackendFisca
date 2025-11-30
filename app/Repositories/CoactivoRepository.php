@@ -154,4 +154,37 @@ class CoactivoRepository
             ->orderByDesc('id_coactivo')
             ->get();
     }
+
+    /**
+     * Verifica si existe un coactivo con el correlativo y año especificado
+     * Busca por patrón: {correlativo}-N-{año}-MDNCH-GEC
+     */
+    public function existsByCorrelativoAndYear(int $correlativo, int $year): bool
+    {
+        $patron = str_pad($correlativo, 4, '0', STR_PAD_LEFT) . '-N-' . $year . '-MDNCH-GEC';
+        return $this->model->where('codigo_expediente_coactivo', $patron)->exists();
+    }
+
+    /**
+     * Verifica si un expediente ya está vinculado a un coactivo
+     */
+    public function existsByExpedienteId(int $idExpediente): bool
+    {
+        return $this->model->where('id_expediente', $idExpediente)->exists();
+    }
+
+    /**
+     * Busca un coactivo por ID de expediente
+     */
+    public function findByExpedienteId(int $idExpediente): ?Coactivo
+    {
+        return $this->model
+            ->with([
+                'expediente.administrado',
+                'expediente.estado',
+                'estadoCoactivo'
+            ])
+            ->where('id_expediente', $idExpediente)
+            ->first();
+    }
 }
