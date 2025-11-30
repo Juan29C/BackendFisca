@@ -60,4 +60,12 @@ class CoactivoService
     {
         return $this->repository->existsByCodigo($codigo);
     }
+
+    /**
+     * Crea un expediente coactivo vinculado a un expediente usando stored procedure
+     */
+    public function vincularExpedienteCoactivo(array $data): array
+    {
+        return $this->repository->crearExpedienteCoactivoConSP($data);
+    }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Coactivo\VincularExpedienteCoactivoRequest;
+use App\Http\Resources\CoactivoResource;
 use App\Services\CoactivoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -105,5 +107,31 @@ class CoactivoController extends Controller
             'ok' => true,
             'message' => 'Coactivo eliminado correctamente',
         ]);
+    }
+
+    /**
+     * Vincula un expediente al área coactiva creando expediente coactivo y detalle
+     * POST /coactivos/vincular-expediente
+     */
+    public function vincularExpediente(VincularExpedienteCoactivoRequest $request): JsonResponse
+    {
+        try {
+            $resultado = $this->service->vincularExpedienteCoactivo($request->validated());
+
+            // Obtener el coactivo creado con sus relaciones
+            $coactivo = $this->service->getDetailed($resultado['id_coactivo']);
+
+            return response()->json([
+                'ok' => true,
+                'message' => 'Expediente vinculado a coactivo correctamente',
+                'codigo_generado' => $resultado['codigo_generado'],
+                'data' => new CoactivoResource($coactivo),
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

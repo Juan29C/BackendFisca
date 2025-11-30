@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CoactivoController;
 use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\EntidadBancariaController;
 use App\Http\Controllers\ExpedienteController;
@@ -66,4 +67,11 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
     Route::post('/entidades-bancarias', [EntidadBancariaController::class, 'store'])->middleware(['fiscalizacion']);
     Route::put('/entidades-bancarias/{id}', [EntidadBancariaController::class, 'update'])->middleware(['fiscalizacion']);
     Route::delete('/entidades-bancarias/{id}', [EntidadBancariaController::class, 'destroy'])->middleware(['fiscalizacion']);
+    
+    // Coactivos - Vincular expediente (Solo Coactivo puede crear)
+    Route::post('/coactivos/vincular-expediente', [CoactivoController::class, 'vincularExpediente'])->middleware(['coactivo']);
+    
+    // Coactivos - Lectura: Ambos roles
+    Route::get('/coactivos', [CoactivoController::class, 'index'])->middleware(['multi.role:fiscalizacion,coactivo']);
+    Route::get('/coactivos/{id}', [CoactivoController::class, 'show'])->middleware(['multi.role:fiscalizacion,coactivo']);
 });

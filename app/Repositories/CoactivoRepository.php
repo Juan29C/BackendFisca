@@ -5,6 +5,7 @@ namespace App\Repositories;
 use App\Models\Coactivo;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class CoactivoRepository
 {
@@ -108,5 +109,35 @@ class CoactivoRepository
     public function existsByCodigo(string $codigo): bool
     {
         return $this->model->where('codigo_expediente_coactivo', $codigo)->exists();
+    }
+
+    /**
+     * Crea expediente coactivo y detalle usando stored procedure
+     */
+    public function crearExpedienteCoactivoConSP(array $data): array
+    {
+        $result = DB::select('CALL crear_expediente_y_detalle_coactivo(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [
+            $data['id_expediente'],
+            $data['correlativo'],
+            $data['ejecutor_coactivo'],
+            $data['auxiliar_coactivo'] ?? null,
+            $data['observaciones'] ?? null,
+            $data['res_sancion_codigo'] ?? null,
+            $data['res_sancion_fecha'] ?? null,
+            $data['res_consentida_codigo'] ?? null,
+            $data['res_consentida_fecha'] ?? null,
+            $data['papeleta_codigo'] ?? null,
+            $data['papeleta_fecha'] ?? null,
+            $data['codigo_infraccion'] ?? null,
+            $data['descripcion_infraccion'] ?? null,
+            $data['monto_deuda'],
+            $data['monto_costas'] ?? 0,
+            $data['monto_gastos_admin'] ?? 0,
+        ]);
+
+        return [
+            'id_coactivo' => $result[0]->id_coactivo,
+            'codigo_generado' => $result[0]->codigo_generado,
+        ];
     }
 }
