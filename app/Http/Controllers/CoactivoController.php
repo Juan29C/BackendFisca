@@ -34,7 +34,7 @@ class CoactivoController extends Controller
 
         return response()->json([
             'ok' => true,
-            'data' => $coactivo,
+            'data' => new CoactivoResource($coactivo),
         ]);
     }
 
