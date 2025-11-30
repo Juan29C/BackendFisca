@@ -140,4 +140,18 @@ class CoactivoRepository
             'codigo_generado' => $result[0]->codigo_generado,
         ];
     }
+
+    /**
+     * Obtiene todos los coactivos con expediente y administrado para mostrar en lista
+     */
+    public function getAllForList(): Collection
+    {
+        return $this->model
+            ->with([
+                'expediente:id,codigo_expediente,id_administrado',
+                'expediente.administrado:id,dni,ruc,tipo,nombres,apellidos,razon_social,domicilio'
+            ])
+            ->orderByDesc('id_coactivo')
+            ->get();
+    }
 }

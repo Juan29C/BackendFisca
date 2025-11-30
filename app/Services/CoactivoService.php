@@ -68,4 +68,12 @@ class CoactivoService
     {
         return $this->repository->crearExpedienteCoactivoConSP($data);
     }
+
+    /**
+     * Obtiene todos los coactivos con expediente y administrado para la lista
+     */
+    public function getAllWithRelations(): Collection
+    {
+        return $this->repository->getAllForList();
+    }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Coactivo\VincularExpedienteCoactivoRequest;
+use App\Http\Resources\CoactivoListResource;
 use App\Http\Resources\CoactivoResource;
 use App\Services\CoactivoService;
 use Illuminate\Http\JsonResponse;
@@ -14,18 +15,12 @@ class CoactivoController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $filters = [
-            'q' => $request->input('q'),
-            'estado' => $request->input('estado'),
-        ];
-        
-        $perPage = (int) $request->input('per_page', 10);
-        
-        $coactivos = $this->service->paginate($filters, $perPage);
+        // Obtener todos los coactivos con sus relaciones
+        $coactivos = $this->service->getAllWithRelations();
 
         return response()->json([
             'ok' => true,
-            'data' => $coactivos,
+            'data' => CoactivoListResource::collection($coactivos),
         ]);
     }
 
