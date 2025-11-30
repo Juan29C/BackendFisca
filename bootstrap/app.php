@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Middleware\AuthenticateJWT;
 use App\Http\Middleware\CoactivoMiddleware;
 use App\Http\Middleware\FiscalizacionMiddleware;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\IsUserAuth;
 use App\Http\Middleware\JWTAuthenticate;
 use App\Http\Middleware\JWTRefresh;
+use App\Http\Middleware\MultiRoleMiddleware;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -28,14 +30,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        CoactivoMiddleware::class;
-        FiscalizacionMiddleware::class;
-        IsUserAuth::class;
-    })
-    ->withMiddleware(function (Middleware $middleware): void {
-        CoactivoMiddleware::class;
-        FiscalizacionMiddleware::class;
-        IsUserAuth::class;
+        $middleware->alias([
+            'auth.jwt' => AuthenticateJWT::class,
+            'coactivo' => CoactivoMiddleware::class,
+            'fiscalizacion' => FiscalizacionMiddleware::class,
+            'multi.role' => MultiRoleMiddleware::class,
+            'user.auth' => IsUserAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (UnauthorizedHttpException $e, $request) {

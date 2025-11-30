@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentoController;
+use App\Http\Controllers\EntidadBancariaController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ResolucionController;
 use App\Http\Controllers\TiposDocumentoController;
@@ -23,68 +24,46 @@ Route::prefix('user')->group(function () {
 });
 
 
-// ===== Rutas v1 (Fiscalización) =====
-Route::prefix('v1/auth')->middleware([FiscalizacionMiddleware::class])->group(function () {
+// ===== Rutas v1/auth - Ambos roles (Fiscalización y Coactivo) =====
+Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
+    // Rutas comunes para ambos roles
     Route::get('me',        [AuthController::class, 'me']);
     Route::post('refresh',  [AuthController::class, 'refresh']);
     Route::post('logout',   [AuthController::class, 'logout']);
     
-    // Expedientes
-    Route::post('expedientes', [ExpedienteController::class, 'store']);
-    Route::get('expedientes', [ExpedienteController::class, 'index']);
-    Route::get('expedientes/elevados-coactivo', [ExpedienteController::class, 'elevadosCoactivo']);
-    Route::get('expedientes/{id}', [ExpedienteController::class, 'show']);
-    Route::put('expedientes/{id}', [ExpedienteController::class, 'update']);
-    Route::delete('expedientes/{id}', [ExpedienteController::class, 'destroy']);
-    Route::post('expedientes/{id}/apelacion', [ExpedienteController::class, 'resolverApelacion']);
-    Route::post('expedientes/{id}/reconsideracion', [ExpedienteController::class, 'iniciarReconsideracion']);
-
-    // Documentos anidados en expediente
-    Route::get('expedientes/{expediente}/documentos', [DocumentoController::class, 'index']);
-    Route::post('expedientes/{expediente}/documentos', [DocumentoController::class, 'store']);
-    Route::put('expedientes/{expediente}/documentos/{id}', [DocumentoController::class, 'patch']);
-    Route::delete('expedientes/{expediente}/documentos/{id}', [DocumentoController::class, 'destroy']);
-
-    // Resoluciones por expediente
-    Route::post('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'storeForExpediente']);
-    Route::get('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'indexForExpediente']);
-
-    // Plantillas
-
-    // Tipos de Documentos
-    Route::get('/tipos-documentos', [TiposDocumentoController::class, 'index']);
+    // Expedientes - Lectura: Ambos roles
+    Route::get('expedientes', [ExpedienteController::class, 'index'])->middleware(['multi.role:fiscalizacion,coactivo']);
+    Route::get('expedientes/elevados-coactivo', [ExpedienteController::class, 'elevadosCoactivo'])->middleware(['multi.role:fiscalizacion,coactivo']);
+    Route::get('expedientes/{id}', [ExpedienteController::class, 'show'])->middleware(['multi.role:fiscalizacion,coactivo']);
     
-});
+    // Expedientes - Escritura: Solo Fiscalización
+    Route::post('expedientes', [ExpedienteController::class, 'store'])->middleware(['fiscalizacion']);
+    Route::put('expedientes/{id}', [ExpedienteController::class, 'update'])->middleware(['fiscalizacion']);
+    Route::delete('expedientes/{id}', [ExpedienteController::class, 'destroy'])->middleware(['fiscalizacion']);
+    Route::post('expedientes/{id}/apelacion', [ExpedienteController::class, 'resolverApelacion'])->middleware(['fiscalizacion']);
+    Route::post('expedientes/{id}/reconsideracion', [ExpedienteController::class, 'iniciarReconsideracion'])->middleware(['fiscalizacion']);
 
-// ===== Rutas v1 (Fiscalización) =====
-Route::prefix('v1/auth')->middleware([CoactivoMiddleware::class])->group(function () {
-    Route::get('me',        [AuthController::class, 'me']);
-    Route::post('refresh',  [AuthController::class, 'refresh']);
-    Route::post('logout',   [AuthController::class, 'logout']);
+    // Documentos - Lectura: Ambos roles
+    Route::get('expedientes/{expediente}/documentos', [DocumentoController::class, 'index'])->middleware(['multi.role:fiscalizacion,coactivo']);
     
-    // Expedientes
-    Route::post('expedientes', [ExpedienteController::class, 'store']);
-    Route::get('expedientes', [ExpedienteController::class, 'index']);
-    Route::get('expedientes/elevados-coactivo', [ExpedienteController::class, 'elevadosCoactivo']);
-    Route::get('expedientes/{id}', [ExpedienteController::class, 'show']);
-    Route::put('expedientes/{id}', [ExpedienteController::class, 'update']);
-    Route::delete('expedientes/{id}', [ExpedienteController::class, 'destroy']);
-    Route::post('expedientes/{id}/apelacion', [ExpedienteController::class, 'resolverApelacion']);
-    Route::post('expedientes/{id}/reconsideracion', [ExpedienteController::class, 'iniciarReconsideracion']);
+    // Documentos - Escritura: Solo Fiscalización
+    Route::post('expedientes/{expediente}/documentos', [DocumentoController::class, 'store'])->middleware(['fiscalizacion']);
+    Route::put('expedientes/{expediente}/documentos/{id}', [DocumentoController::class, 'patch'])->middleware(['fiscalizacion']);
+    Route::delete('expedientes/{expediente}/documentos/{id}', [DocumentoController::class, 'destroy'])->middleware(['fiscalizacion']);
 
-    // Documentos anidados en expediente
-    Route::get('expedientes/{expediente}/documentos', [DocumentoController::class, 'index']);
-    Route::post('expedientes/{expediente}/documentos', [DocumentoController::class, 'store']);
-    Route::put('expedientes/{expediente}/documentos/{id}', [DocumentoController::class, 'patch']);
-    Route::delete('expedientes/{expediente}/documentos/{id}', [DocumentoController::class, 'destroy']);
-
-    // Resoluciones por expediente
-    Route::post('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'storeForExpediente']);
-    Route::get('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'indexForExpediente']);
-
-    // Plantillas
-
-    // Tipos de Documentos
-    Route::get('/tipos-documentos', [TiposDocumentoController::class, 'index']);
+    // Resoluciones - Lectura: Ambos roles
+    Route::get('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'indexForExpediente'])->middleware(['multi.role:fiscalizacion,coactivo']);
     
+    // Resoluciones - Escritura: Solo Fiscalización
+    Route::post('expedientes/{expediente}/resoluciones', [ResolucionController::class, 'storeForExpediente'])->middleware(['fiscalizacion']);
+
+    // Tipos de Documentos - Ambos roles
+    Route::get('/tipos-documentos', [TiposDocumentoController::class, 'index'])->middleware(['multi.role:fiscalizacion,coactivo']);
+    
+    // Entidades Bancarias - Solo Fiscalización
+    Route::get('/entidades-bancarias', [EntidadBancariaController::class, 'index'])->middleware(['fiscalizacion']);
+    Route::get('/entidades-bancarias/{id}', [EntidadBancariaController::class, 'show'])->middleware(['fiscalizacion']);
+    Route::post('/entidades-bancarias', [EntidadBancariaController::class, 'store'])->middleware(['fiscalizacion']);
+    Route::put('/entidades-bancarias/{id}', [EntidadBancariaController::class, 'update'])->middleware(['fiscalizacion']);
+    Route::delete('/entidades-bancarias/{id}', [EntidadBancariaController::class, 'destroy'])->middleware(['fiscalizacion']);
 });
