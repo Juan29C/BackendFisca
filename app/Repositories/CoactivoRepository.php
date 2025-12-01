@@ -136,8 +136,27 @@ class CoactivoRepository
             $data['monto_gastos_admin'] ?? 0,
         ]);
 
+        // Si se envió el tipo de papeleta en el request, actualizar el detalle creado por el SP
+        // (el SP no recibe este campo). Intentamos ubicar el detalle creado por id_coactivo
+        // y por el código de papeleta si se proporcionó.
+        $idCoactivo = $result[0]->id_coactivo;
+
+        if (!empty($data['tipo_papeleta'])) {
+            $updateQuery = DB::table('detalle_coactivo')
+                ->where('id_coactivo', $idCoactivo);
+
+            if (!empty($data['papeleta_codigo'])) {
+                $updateQuery->where('papeleta_codigo', $data['papeleta_codigo']);
+            }
+
+            $updateQuery->update([
+                'tipo_papeleta' => $data['tipo_papeleta'],
+                'updated_at' => now(),
+            ]);
+        }
+
         return [
-            'id_coactivo' => $result[0]->id_coactivo,
+            'id_coactivo' => $idCoactivo,
             'codigo_generado' => $result[0]->codigo_generado,
         ];
     }

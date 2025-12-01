@@ -31,6 +31,12 @@ class CreateDetalleCoactivoTable extends Migration
             $table->string('papeleta_codigo', 50)->nullable();
             $table->date('papeleta_fecha')->nullable();
 
+            // Tipo de papeleta: enum
+            $table->enum('tipo_papeleta', [
+                'Papeleta de Infracción Administrativa',
+                'Papeleta de Notificación Preventiva',
+            ])->nullable();
+
             // Infracción
             $table->string('codigo_infraccion', 50)->nullable();
             $table->text('descripcion_infraccion')->nullable();

@@ -27,6 +27,7 @@ class VincularExpedienteCoactivoRequest extends FormRequest
             'res_consentida_fecha' => 'nullable|date',
             'papeleta_codigo' => 'nullable|string|max:50',
             'papeleta_fecha' => 'nullable|date',
+            'tipo_papeleta' => 'nullable|string|in:Papeleta de Infracción Administrativa,Papeleta de Notificación Preventiva',
             'codigo_infraccion' => 'nullable|string|max:50',
             'descripcion_infraccion' => 'nullable|string',
             

@@ -168,28 +168,82 @@ class DocumentoCoactivoService
         $nombreCompleto = trim(($administrado->nombres ?? '') . ' ' . ($administrado->apellidos ?? '')) ?: ($administrado->razon_social ?? '');
         $documentoIdentidad = $administrado->dni ?: ($administrado->ruc ?? '');
 
-        $variables = [
-            // Claves en mayúsculas (compatibilidad previa)
-            'EXPEDIENTE_COACTIVO' => $coactivo->codigo_expediente_coactivo ?? '',
-            'OBLIGADO' => $nombreCompleto,
-            'DNI_RUC' => $documentoIdentidad,
-            'DOMICILIO' => $administrado->domicilio ?? '',
-            'AUXILIAR_COACTIVO' => $coactivo->auxiliar_coactivo ?? '',
-            'EJECUTOR_COACTIVO' => $coactivo->ejecutor_coactivo ?? '',
-            'FECHA_INICIO' => $coactivo->fecha_inicio?->format('d/m/Y') ?? '',
-            'MONTO_DEUDA' => number_format($coactivo->monto_deuda ?? 0, 2, '.', ','),
-            'MONTO_COSTAS' => number_format($coactivo->monto_costas ?? 0, 2, '.', ','),
-            'MONTO_GASTOS_ADMIN' => number_format($coactivo->monto_gastos_admin ?? 0, 2, '.', ','),
-            'TOTAL_DEUDA' => number_format((($coactivo->monto_deuda ?? 0) + ($coactivo->monto_costas ?? 0) + ($coactivo->monto_gastos_admin ?? 0)), 2, '.', ','),
+        // Primer detalle (si existe) para extraer papeleta/resolución/infracción
+        $detalle = $coactivo->detalles->first();
 
-            // Claves utilizadas en tu plantilla específica (minúsculas / nombres diferentes)
+        $tipoPapeleta = $detalle->tipo_papeleta ?? 'Papeleta de Infracción Administrativa';
+        $codPapeleta = $detalle->papeleta_codigo ?? '';
+        $fechaPapeleta = isset($detalle->papeleta_fecha) ? $detalle->papeleta_fecha->format('d/m/Y') : '';
+        $codSancion = $detalle->res_sancion_codigo ?? '';
+        $fechaSancion = isset($detalle->res_sancion_fecha) ? $detalle->res_sancion_fecha->format('d/m/Y') : '';
+        $codConsentida = $detalle->res_consentida_codigo ?? '';
+        $fechaConsentida = isset($detalle->res_consentida_fecha) ? $detalle->res_consentida_fecha->format('d/m/Y') : '';
+        $codInfraccion = $detalle->codigo_infraccion ?? '';
+        $descripcionPapeleta = $detalle->descripcion_infraccion ?? '';
+
+        // Montos
+        $montoDeuda = $coactivo->monto_deuda ?? 0;
+        $montoCostas = $coactivo->monto_costas ?? 0;
+        $montoGastosAdmin = $coactivo->monto_gastos_admin ?? 0;
+        $montoTotal = $montoDeuda + $montoCostas + $montoGastosAdmin;
+
+        // Fecha de resolución en formato "04 DICIEMBRE DEL 2023"
+        $now = now();
+        $meses = [1 => 'ENERO', 2 => 'FEBRERO', 3 => 'MARZO', 4 => 'ABRIL', 5 => 'MAYO', 6 => 'JUNIO', 7 => 'JULIO', 8 => 'AGOSTO', 9 => 'SEPTIEMBRE', 10 => 'OCTUBRE', 11 => 'NOVIEMBRE', 12 => 'DICIEMBRE'];
+        $fechaResCoactivo = sprintf('%02d %s DEL %d', $now->day, $meses[(int)$now->month] ?? strtoupper($now->format('F')), $now->year);
+
+        // Forzar mayúsculas en campos requeridos
+        $nombreCompletoUpper = mb_strtoupper($nombreCompleto, 'UTF-8');
+        $direccionUpper = mb_strtoupper($administrado->domicilio ?? '', 'UTF-8');
+        $ejecutorUpper = mb_strtoupper($coactivo->ejecutor_coactivo ?? '', 'UTF-8');
+
+        $variables = [
+            // Nombres solicitados por la plantilla
+            'cod_expediente_coactivo' => $coactivo->codigo_expediente_coactivo ?? '',
             'codigo_expediente_coactivo' => $coactivo->codigo_expediente_coactivo ?? '',
-            'nombre_completo_administrado' => $nombreCompleto,
+
+            'nombre_completo' => $nombreCompletoUpper,
+            'nombre_completo_administrado' => $nombreCompletoUpper,
+            'OBLIGADO' => $nombreCompletoUpper,
+
+            'documento' => $documentoIdentidad,
             'documento_administrado' => $documentoIdentidad,
-            // Nota: usar la misma grafía que tienes en el docx; si tu placeholder tiene tilde, úsala aquí.
-            'dirección_administrado' => $administrado->domicilio ?? '',
-            'direccion_administrado' => $administrado->domicilio ?? '',
+            'DNI_RUC' => $documentoIdentidad,
+
+            'direccion' => $direccionUpper,
+            'dirección_administrado' => $direccionUpper,
+            'direccion_administrado' => $direccionUpper,
+            'DOMICILIO' => $direccionUpper,
+
+            'ejecutor_coactivo' => $ejecutorUpper,
+            'EJECUTOR_COACTIVO' => $ejecutorUpper,
+
             'auxiliar_coactivo' => $coactivo->auxiliar_coactivo ?? '',
+
+            // Fecha de resolución especial
+            'fecha_res_coactivo' => $fechaResCoactivo,
+
+            // Papeleta / resoluciones / infracción
+            'tipo_papeleta' => $tipoPapeleta,
+            'cod_papeleta' => $codPapeleta,
+            'fecha_papeleta' => $fechaPapeleta,
+            'cod_sancion' => $codSancion,
+            'fecha_sancion' => $fechaSancion,
+            'cod_consentida' => $codConsentida,
+            'fecha_consentida' => $fechaConsentida,
+            'cod_infraccion' => $codInfraccion,
+            'DESCRIPCION_PAPELETA' => mb_strtoupper($descripcionPapeleta, 'UTF-8'),
+
+            // Montos
+            'monto_deuda' => number_format($montoDeuda, 2, '.', ','),
+            'monto_gatos_admin' => number_format($montoGastosAdmin, 2, '.', ','),
+            'monto_gastos_admin' => number_format($montoGastosAdmin, 2, '.', ','),
+            'monto_costas' => number_format($montoCostas, 2, '.', ','),
+            'monto_total' => number_format($montoTotal, 2, '.', ','),
+
+            // Compatibilidad adicional
+            'EXPEDIENTE_COACTIVO' => $coactivo->codigo_expediente_coactivo ?? '',
+            'FECHA_INICIO' => $coactivo->fecha_inicio?->format('d/m/Y') ?? '',
         ];
 
         // Obtener ruta de la plantilla

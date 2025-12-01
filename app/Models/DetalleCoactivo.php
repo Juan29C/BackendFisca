@@ -21,6 +21,7 @@ class DetalleCoactivo extends Model
         'res_consentida_fecha',
         'papeleta_codigo',
         'papeleta_fecha',
+        'tipo_papeleta',
         'codigo_infraccion',
         'descripcion_infraccion',
     ];
