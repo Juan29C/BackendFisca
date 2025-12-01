@@ -114,7 +114,27 @@ class DocumentoCoactivoController extends Controller
     public function generarResolucion1(int $coactivoId)
     {
         try {
-            $result = $this->service->generarDocumentoDesdePlantilla($coactivoId, 'resolucionCoactivoNum1');
+            $result = $this->service->generarResolucion1($coactivoId);
+
+            return response()->download($result['file_path'], $result['file_name'], [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ])->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Genera documento Word desde plantilla resolucion_coactivo_num2
+     * POST /coactivos/{coactivoId}/documentos/generar-resolucion-2
+     */
+    public function generarResolucion2(int $coactivoId)
+    {
+        try {
+            $result = $this->service->generarResolucion2($coactivoId);
 
             return response()->download($result['file_path'], $result['file_name'], [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
