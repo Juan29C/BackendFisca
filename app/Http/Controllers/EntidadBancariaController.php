@@ -11,16 +11,11 @@ use Illuminate\Http\JsonResponse;
 
 class EntidadBancariaController extends Controller
 {
-    use HasRoleAuthorization;
 
     public function __construct(private EntidadBancariaService $service) {}
 
     public function index(): JsonResponse
     {
-        // Solo Fiscalización puede ver entidades bancarias
-        if ($error = $this->requireFiscalizacion()) {
-            return $error;
-        }
 
         $entidades = $this->service->getAll();
         
@@ -32,11 +27,6 @@ class EntidadBancariaController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        // Solo Fiscalización puede ver entidades bancarias
-        if ($error = $this->requireFiscalizacion()) {
-            return $error;
-        }
-
         $entidad = $this->service->getById($id);
         
         if (!$entidad) {
@@ -51,10 +41,6 @@ class EntidadBancariaController extends Controller
 
     public function store(StoreEntidadBancariaRequest $request): JsonResponse
     {
-        // Solo Fiscalización puede crear entidades bancarias
-        if ($error = $this->requireFiscalizacion()) {
-            return $error;
-        }
 
         $entidad = $this->service->create($request->validated());
 
@@ -67,10 +53,6 @@ class EntidadBancariaController extends Controller
 
     public function update(UpdateEntidadBancariaRequest $request, int $id): JsonResponse
     {
-        // Solo Fiscalización puede actualizar entidades bancarias
-        if ($error = $this->requireFiscalizacion()) {
-            return $error;
-        }
 
         $entidad = $this->service->update($id, $request->validated());
 
@@ -87,10 +69,7 @@ class EntidadBancariaController extends Controller
 
     public function destroy(int $id): JsonResponse
     {
-        // Solo Fiscalización puede eliminar entidades bancarias
-        if ($error = $this->requireFiscalizacion()) {
-            return $error;
-        }
+
 
         $deleted = $this->service->delete($id);
 
