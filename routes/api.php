@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CoactivoController;
 use App\Http\Controllers\DocumentoController;
+use App\Http\Controllers\DocumentoCoactivoController;
 use App\Http\Controllers\EntidadBancariaController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ResolucionController;
@@ -77,4 +78,14 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
     // Coactivos - Lectura: Ambos roles
     Route::get('/coactivos', [CoactivoController::class, 'index'])->middleware(['multi.role:fiscalizacion,coactivo']);
     Route::get('/coactivos/{id}', [CoactivoController::class, 'show'])->middleware(['multi.role:fiscalizacion,coactivo']);
+    
+    // Documentos Coactivos - Solo Coactivo
+    Route::get('/coactivos/{coactivoId}/documentos', [DocumentoCoactivoController::class, 'index'])->middleware(['coactivo']);
+    Route::get('/coactivos/{coactivoId}/documentos/{id}', [DocumentoCoactivoController::class, 'show'])->middleware(['coactivo']);
+    Route::post('/coactivos/{coactivoId}/documentos', [DocumentoCoactivoController::class, 'store'])->middleware(['coactivo']);
+    Route::put('/coactivos/{coactivoId}/documentos/{id}', [DocumentoCoactivoController::class, 'update'])->middleware(['coactivo']);
+    Route::delete('/coactivos/{coactivoId}/documentos/{id}', [DocumentoCoactivoController::class, 'destroy'])->middleware(['coactivo']);
+    
+    // Generar documento Word desde plantilla - Solo Coactivo
+    Route::post('/coactivos/{coactivoId}/documentos/generar-resolucion-1', [DocumentoCoactivoController::class, 'generarResolucion1'])->middleware(['coactivo']);
 });
