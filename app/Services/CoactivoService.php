@@ -103,4 +103,49 @@ class CoactivoService
     {
         return $this->repository->findByExpedienteId($idExpediente);
     }
+
+    /**
+     * Obtiene datos del coactivo para prefill del formulario de orden de pago
+     */
+    public function getDatosParaOrdenPago(int $id): array
+    {
+        $coactivo = $this->repository->find($id);
+        
+        if (!$coactivo) {
+            throw new \Exception("Expediente coactivo no encontrado");
+        }
+
+        $coactivo->load(['expediente.administrado', 'detalles']);
+
+        $administrado = $coactivo->expediente->administrado;
+        if (!$administrado) {
+            throw new \Exception("Administrado no encontrado en el expediente");
+        }
+
+        // Calcular monto total
+        $montoDeuda = $coactivo->monto_deuda ?? 0;
+        $montoCostas = $coactivo->monto_costas ?? 0;
+        $montoGastosAdmin = $coactivo->monto_gastos_admin ?? 0;
+        $montoTotal = $montoDeuda + $montoCostas + $montoGastosAdmin;
+
+        // Obtener primer detalle para cod_sancion
+        $detalle = $coactivo->detalles->first();
+        $codSancion = $detalle?->res_sancion_codigo ?? '';
+
+        // Nombre completo
+        $nombreCompleto = trim(($administrado->nombres ?? '') . ' ' . ($administrado->apellidos ?? '')) ?: ($administrado->razon_social ?? '');
+
+        return [
+            'id_coactivo' => $coactivo->id_coactivo,
+            'codigo_expediente_coactivo' => $coactivo->codigo_expediente_coactivo ?? '',
+            'nombre_completo' => $nombreCompleto,
+            'domicilio' => $administrado->domicilio ?? '',
+            'documento' => $administrado->dni ?: ($administrado->ruc ?? ''),
+            'cod_sancion' => $codSancion,
+            'monto_total' => $montoTotal,
+            'monto_deuda' => $montoDeuda,
+            'monto_costas' => $montoCostas,
+            'monto_gastos_admin' => $montoGastosAdmin,
+        ];
+    }
 }

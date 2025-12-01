@@ -152,4 +152,25 @@ class CoactivoController extends Controller
             'data' => null,
         ]);
     }
+
+    /**
+     * Obtiene datos del coactivo para prefill del formulario de orden de pago
+     * GET /coactivos/{id}/datos-para-orden-pago
+     */
+    public function getDatosParaOrdenPago(int $id): JsonResponse
+    {
+        try {
+            $datos = $this->service->getDatosParaOrdenPago($id);
+
+            return response()->json([
+                'ok' => true,
+                'data' => $datos,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 404);
+        }
+    }
 }

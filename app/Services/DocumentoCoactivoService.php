@@ -407,6 +407,145 @@ class DocumentoCoactivoService
     }
 
     /**
+     * Genera Orden de Pago Total
+     */
+    public function generarOrdenPagoTotal(int $idCoactivo, array $data): array
+    {
+        $coactivo = \App\Models\Coactivo::with(['expediente.administrado', 'detalles'])
+            ->find($idCoactivo);
+
+        if (!$coactivo) {
+            throw new \Exception("Expediente coactivo no encontrado");
+        }
+
+        $administrado = $coactivo->expediente->administrado;
+        if (!$administrado) {
+            throw new \Exception("Administrado no encontrado en el expediente");
+        }
+
+        $nombreCompleto = trim(($administrado->nombres ?? '') . ' ' . ($administrado->apellidos ?? '')) ?: ($administrado->razon_social ?? '');
+        $nombreCompletoUpper = mb_strtoupper($nombreCompleto, 'UTF-8');
+        $documentoIdentidad = $administrado->dni ?: ($administrado->ruc ?? '');
+
+        // Primer detalle para cod_sancion
+        $detalle = $coactivo->detalles->first();
+        $codSancion = $detalle->res_sancion_codigo ?? '';
+
+        // Montos
+        $montoDeuda = $coactivo->monto_deuda ?? 0;
+        $montoCostas = $coactivo->monto_costas ?? 0;
+        $montoGastosAdmin = $coactivo->monto_gastos_admin ?? 0;
+        $montoTotal = $montoDeuda + $montoCostas + $montoGastosAdmin;
+
+        $variables = [
+            'cod_expediente_coactivo' => $coactivo->codigo_expediente_coactivo ?? '',
+            'nombre_completo' => $nombreCompletoUpper,
+            'documento' => $documentoIdentidad,
+            'cod_sancion' => $codSancion,
+            'monto_total' => number_format($montoTotal, 2, '.', ','),
+            'monto_final' => number_format($data['monto_final'], 2, '.', ','),
+            'fecha_orden_pago' => \Carbon\Carbon::parse($data['fecha_orden_pago'])->format('d/m/Y'),
+            'porcentaje_amnistia' => $data['porcentaje_amnistia'] ?? '0',
+            'monto_descuento_amnistia' => number_format($data['monto_descuento_amnistia'] ?? 0, 2, '.', ','),
+            'ordenanza' => $data['ordenanza'] ?? '',
+        ];
+
+        $templateName = config('templates.ordenPagoTotal');
+        if (!$templateName) {
+            throw new \Exception("Plantilla 'ordenPagoTotal' no configurada");
+        }
+
+        $templatePath = storage_path("app/plantillas/{$templateName}");
+        if (!file_exists($templatePath)) {
+            throw new \Exception("Archivo de plantilla no encontrado: {$templatePath}");
+        }
+
+        $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+        foreach ($variables as $key => $value) {
+            $templateProcessor->setValue($key, $value);
+        }
+
+        $outputFileName = 'orden_pago_total_' . $coactivo->id_coactivo . '_' . time() . '.docx';
+        $tempPath = tempnam(sys_get_temp_dir(), 'word_');
+        $templateProcessor->saveAs($tempPath);
+
+        return [
+            'file_path' => $tempPath,
+            'file_name' => $outputFileName,
+            'variables' => $variables,
+        ];
+    }
+
+    /**
+     * Genera Orden de Pago Parcial
+     */
+    public function generarOrdenPagoParcial(int $idCoactivo, array $data): array
+    {
+        $coactivo = \App\Models\Coactivo::with(['expediente.administrado', 'detalles'])
+            ->find($idCoactivo);
+
+        if (!$coactivo) {
+            throw new \Exception("Expediente coactivo no encontrado");
+        }
+
+        $administrado = $coactivo->expediente->administrado;
+        if (!$administrado) {
+            throw new \Exception("Administrado no encontrado en el expediente");
+        }
+
+        $nombreCompleto = trim(($administrado->nombres ?? '') . ' ' . ($administrado->apellidos ?? '')) ?: ($administrado->razon_social ?? '');
+        $nombreCompletoUpper = mb_strtoupper($nombreCompleto, 'UTF-8');
+        $documentoIdentidad = $administrado->dni ?: ($administrado->ruc ?? '');
+
+        // Primer detalle para cod_sancion
+        $detalle = $coactivo->detalles->first();
+        $codSancion = $detalle->res_sancion_codigo ?? '';
+
+        // Montos
+        $montoDeuda = $coactivo->monto_deuda ?? 0;
+        $montoCostas = $coactivo->monto_costas ?? 0;
+        $montoGastosAdmin = $coactivo->monto_gastos_admin ?? 0;
+        $montoTotal = $montoDeuda + $montoCostas + $montoGastosAdmin;
+
+        $variables = [
+            'cod_expediente_coactivo' => $coactivo->codigo_expediente_coactivo ?? '',
+            'nombre_completo' => $nombreCompletoUpper,
+            'documento' => $documentoIdentidad,
+            'cod_sancion' => $codSancion,
+            'monto_total' => number_format($montoTotal, 2, '.', ','),
+            'monto_pagado' => number_format($data['monto_pagado'], 2, '.', ','),
+            'fecha_pago' => \Carbon\Carbon::parse($data['fecha_pago'])->format('d/m/Y'),
+            'monto_saldo_pendiente' => number_format($data['monto_saldo_pendiente'], 2, '.', ','),
+            'ordenanza' => $data['ordenanza'] ?? '',
+        ];
+
+        $templateName = config('templates.ordenPagoParcial');
+        if (!$templateName) {
+            throw new \Exception("Plantilla 'ordenPagoParcial' no configurada");
+        }
+
+        $templatePath = storage_path("app/plantillas/{$templateName}");
+        if (!file_exists($templatePath)) {
+            throw new \Exception("Archivo de plantilla no encontrado: {$templatePath}");
+        }
+
+        $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+        foreach ($variables as $key => $value) {
+            $templateProcessor->setValue($key, $value);
+        }
+
+        $outputFileName = 'orden_pago_parcial_' . $coactivo->id_coactivo . '_' . time() . '.docx';
+        $tempPath = tempnam(sys_get_temp_dir(), 'word_');
+        $templateProcessor->saveAs($tempPath);
+
+        return [
+            'file_path' => $tempPath,
+            'file_name' => $outputFileName,
+            'variables' => $variables,
+        ];
+    }
+
+    /**
      * Convierte un número entero (0..999999999) a palabras en español (sin la palabra SOLES).
      * Resultado en minúsculas, por eso envolvemos con mb_strtoupper donde se requiera.
      */

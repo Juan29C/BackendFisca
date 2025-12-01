@@ -89,4 +89,9 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
     // Generar documento Word desde plantilla - Solo Coactivo
     Route::post('/coactivos/{coactivoId}/documentos/generar-resolucion-1', [DocumentoCoactivoController::class, 'generarResolucion1'])->middleware(['coactivo']);
     Route::post('/coactivos/{coactivoId}/documentos/generar-resolucion-2', [DocumentoCoactivoController::class, 'generarResolucion2'])->middleware(['coactivo']);
+    Route::post('/coactivos/{coactivoId}/documentos/generar-orden-pago-total', [DocumentoCoactivoController::class, 'generarOrdenPagoTotal'])->middleware(['coactivo']);
+    Route::post('/coactivos/{coactivoId}/documentos/generar-orden-pago-parcial', [DocumentoCoactivoController::class, 'generarOrdenPagoParcial'])->middleware(['coactivo']);
+    
+    // Obtener datos para prefill del formulario de orden de pago - Solo Coactivo
+    Route::get('/coactivos/{id}/datos-para-orden-pago', [CoactivoController::class, 'getDatosParaOrdenPago'])->middleware(['coactivo']);
 });
