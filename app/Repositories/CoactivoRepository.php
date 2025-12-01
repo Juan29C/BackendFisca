@@ -97,8 +97,9 @@ class CoactivoRepository
     {
         return $this->model
             ->with([
-                'expediente.administrado',
-                'expediente.estado',
+                'expediente' => function ($query) {
+                    $query->with(['administrado', 'estado']);
+                },
                 'estadoCoactivo',
                 'detalles',
                 'documentos.tipoDocumento'

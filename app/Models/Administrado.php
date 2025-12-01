@@ -21,6 +21,8 @@ class Administrado extends Model
         'apellidos',
         'razon_social',
         'domicilio',
+        'telefono',
+        'email',
         'vinculo',
     ];
 

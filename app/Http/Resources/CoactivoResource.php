@@ -30,6 +30,27 @@ class CoactivoResource extends JsonResource
                     'id' => $this->expediente->id,
                     'numero_expediente' => $this->expediente->numero_expediente,
                     'tipo_infraccion' => $this->expediente->tipo_infraccion,
+                    
+                    // Datos del administrado
+                    'administrado' => $this->expediente->administrado ? [
+                        'id' => $this->expediente->administrado->id,
+                        'tipo' => $this->expediente->administrado->tipo,
+                        'dni' => $this->expediente->administrado->dni,
+                        'ruc' => $this->expediente->administrado->ruc,
+                        'nombres' => $this->expediente->administrado->nombres,
+                        'apellidos' => $this->expediente->administrado->apellidos,
+                        'razon_social' => $this->expediente->administrado->razon_social,
+                        'domicilio' => $this->expediente->administrado->domicilio,
+                        'telefono' => $this->expediente->administrado->telefono ?? null,
+                        'email' => $this->expediente->administrado->email ?? null,
+                        'vinculo' => $this->expediente->administrado->vinculo ?? null,
+                    ] : null,
+                    
+                    // Estado del expediente
+                    'estado' => $this->expediente->estado ? [
+                        'id' => $this->expediente->estado->id,
+                        'nombre' => $this->expediente->estado->nombre,
+                    ] : null,
                 ];
             }),
             
