@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Coactivo;
 use App\Models\DocumentoCoactivo;
 use App\Repositories\DocumentoCoactivoRepository;
 use Illuminate\Database\Eloquent\Collection;
@@ -482,7 +483,7 @@ class DocumentoCoactivoService
      */
     public function generarOrdenPagoParcial(int $idCoactivo, array $data): array
     {
-        $coactivo = \App\Models\Coactivo::with(['expediente.administrado', 'detalles'])
+        $coactivo = Coactivo::with(['expediente.administrado', 'detalles'])
             ->find($idCoactivo);
 
         if (!$coactivo) {

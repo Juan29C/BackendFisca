@@ -207,4 +207,44 @@ class CoactivoRepository
             ->where('id_expediente', $idExpediente)
             ->first();
     }
+
+    /**
+     * Busca expedientes coactivos por documento (DNI/RUC) del administrado
+     * Retorna array simplificado con info básica para selección
+     */
+    public function findByAdministradoDocumento(string $documento): array
+    {
+        $coactivos = $this->model
+            ->select([
+                'coactivos.id_coactivo',
+                'coactivos.codigo_expediente_coactivo',
+                'coactivos.estado',
+                'coactivos.monto_deuda',
+                'coactivos.monto_costas',
+                'coactivos.monto_gastos_admin',
+                'coactivos.fecha_inicio'
+            ])
+            ->join('expediente', 'coactivos.id_expediente', '=', 'expediente.id')
+            ->join('administrado', 'expediente.id_administrado', '=', 'administrado.id')
+            ->where(function ($query) use ($documento) {
+                $query->where('administrado.dni', $documento)
+                      ->orWhere('administrado.ruc', $documento);
+            })
+            ->orderByDesc('coactivos.id_coactivo')
+            ->get();
+
+        return $coactivos->map(function ($coactivo) {
+            $montoTotal = ($coactivo->monto_deuda ?? 0) 
+                        + ($coactivo->monto_costas ?? 0) 
+                        + ($coactivo->monto_gastos_admin ?? 0);
+
+            return [
+                'id_coactivo' => $coactivo->id_coactivo,
+                'codigo_expediente_coactivo' => $coactivo->codigo_expediente_coactivo,
+                'estado' => $coactivo->estado ?? 'Activo',
+                'monto_total' => $montoTotal,
+                'fecha_inicio' => $coactivo->fecha_inicio,
+            ];
+        })->toArray();
+    }
 }

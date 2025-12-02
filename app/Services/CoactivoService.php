@@ -148,4 +148,12 @@ class CoactivoService
             'monto_gastos_admin' => $montoGastosAdmin,
         ];
     }
+
+    /**
+     * Busca expedientes coactivos por documento (DNI/RUC) del administrado
+     */
+    public function buscarPorDocumentoAdministrado(string $documento): array
+    {
+        return $this->repository->findByAdministradoDocumento($documento);
+    }
 }

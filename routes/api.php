@@ -75,6 +75,9 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
     // Coactivos - Verificar vinculación de expediente
     Route::get('/coactivos/verificar-vinculacion/{idExpediente}', [CoactivoController::class, 'verificarVinculacion'])->middleware(['multi.role:fiscalizacion,coactivo']);
     
+    // Buscar expedientes coactivos por documento (DNI/RUC) del administrado - Solo Coactivo
+    Route::get('/coactivos/buscar-por-documento/{documento}', [CoactivoController::class, 'buscarPorDocumento'])->middleware(['coactivo']);
+    
     // Coactivos - Lectura: Ambos roles
     Route::get('/coactivos', [CoactivoController::class, 'index'])->middleware(['multi.role:fiscalizacion,coactivo']);
     Route::get('/coactivos/{id}', [CoactivoController::class, 'show'])->middleware(['multi.role:fiscalizacion,coactivo']);

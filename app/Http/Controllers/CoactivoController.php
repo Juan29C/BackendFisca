@@ -173,4 +173,26 @@ class CoactivoController extends Controller
             ], 404);
         }
     }
+
+    /**
+     * Busca expedientes coactivos por documento (DNI/RUC) del administrado
+     * GET /coactivos/buscar-por-documento/{documento}
+     */
+    public function buscarPorDocumento(string $documento): JsonResponse
+    {
+        try {
+            $expedientes = $this->service->buscarPorDocumentoAdministrado($documento);
+
+            return response()->json([
+                'ok' => true,
+                'data' => $expedientes,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Error al buscar expedientes',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
