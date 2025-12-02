@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Services\DocumentoCoactivoService;
+use App\Http\Resources\DocumentoCoactivoResource;
+use App\Http\Requests\Coactivo\StoreDocumentoCoactivoRequest;
+use App\Http\Requests\Coactivo\UpdateDocumentoCoactivoRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,7 +19,7 @@ class DocumentoCoactivoController extends Controller
 
         return response()->json([
             'ok' => true,
-            'data' => $documentos,
+            'data' => DocumentoCoactivoResource::collection($documentos),
         ]);
     }
 
@@ -30,27 +33,19 @@ class DocumentoCoactivoController extends Controller
 
         return response()->json([
             'ok' => true,
-            'data' => $documento,
+            'data' => new DocumentoCoactivoResource($documento),
         ]);
     }
 
-    public function store(Request $request, int $coactivoId): JsonResponse
+    public function store(StoreDocumentoCoactivoRequest $request, int $coactivoId): JsonResponse
     {
-        $validated = $request->validate([
-            'id_tipo_doc_coactivo' => 'required|integer|exists:tipos_documentos_coactivo,id_tipo_doc_coactivo',
-            'codigo_doc' => 'nullable|string|max:50',
-            'fecha_doc' => 'nullable|date',
-            'descripcion' => 'nullable|string',
-            'file' => 'required|file|max:10240', // 10MB max
-        ]);
-
         try {
-            $documento = $this->service->uploadSingle($coactivoId, $validated);
+            $documento = $this->service->uploadSingle($coactivoId, $request->validated());
 
             return response()->json([
                 'ok' => true,
                 'message' => 'Documento subido correctamente',
-                'data' => $documento,
+                'data' => new DocumentoCoactivoResource($documento),
             ], 201);
         } catch (\Throwable $e) {
             return response()->json([
@@ -60,23 +55,15 @@ class DocumentoCoactivoController extends Controller
         }
     }
 
-    public function update(Request $request, int $coactivoId, int $id): JsonResponse
+    public function update(UpdateDocumentoCoactivoRequest $request, int $coactivoId, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'id_tipo_doc_coactivo' => 'sometimes|integer|exists:tipos_documentos_coactivo,id_tipo_doc_coactivo',
-            'codigo_doc' => 'nullable|string|max:50',
-            'fecha_doc' => 'nullable|date',
-            'descripcion' => 'nullable|string',
-            'file' => 'sometimes|file|max:10240', // 10MB max
-        ]);
-
         try {
-            $documento = $this->service->updateDocumento($id, $validated);
+            $documento = $this->service->updateDocumento($id, $request->validated());
 
             return response()->json([
                 'ok' => true,
                 'message' => 'Documento actualizado correctamente',
-                'data' => $documento,
+                'data' => new DocumentoCoactivoResource($documento),
             ]);
         } catch (\Throwable $e) {
             return response()->json([

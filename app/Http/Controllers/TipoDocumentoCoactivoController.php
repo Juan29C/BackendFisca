@@ -2,21 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\TipoDocumentoCoactivoResource;
 use App\Services\TipoDocumentoCoactivoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class TipoDocumentoCoactivoController extends Controller
 {
     public function __construct(private TipoDocumentoCoactivoService $service) {}
 
-    public function index(): JsonResponse
+    public function index(): AnonymousResourceCollection
     {
         $tipos = $this->service->getAll();
-        return response()->json([
-            'ok' => true,
-            'data' => $tipos,
-        ]);
+        return TipoDocumentoCoactivoResource::collection($tipos);
     }
 
     public function show(int $id): JsonResponse

@@ -70,7 +70,7 @@ class DocumentoCoactivoService
 
             $adm = $coactivo->expediente->administrado;
             $slugPersona = $adm?->ruc ?: ($adm?->dni ?: ('coactivo_' . $idCoactivo));
-            $baseFolder = "coactivos/{$slugPersona}";
+            $baseFolder = "expedientesCoactivo/{$slugPersona}";
 
             $file = $data['file'];
             $originalName = $file->getClientOriginalName();
@@ -120,7 +120,7 @@ class DocumentoCoactivoService
                 $coactivo = \App\Models\Coactivo::with('expediente.administrado')->find($documento->id_coactivo);
                 $adm = $coactivo->expediente->administrado;
                 $slugPersona = $adm?->ruc ?: ($adm?->dni ?: ('coactivo_' . $documento->id_coactivo));
-                $baseFolder = "coactivos/{$slugPersona}";
+                $baseFolder = "expedientesCoactivo/{$slugPersona}";
 
                 $file = $data['file'];
                 $originalName = $file->getClientOriginalName();

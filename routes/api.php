@@ -8,6 +8,7 @@ use App\Http\Controllers\EntidadBancariaController;
 use App\Http\Controllers\ExpedienteController;
 use App\Http\Controllers\ResolucionController;
 use App\Http\Controllers\TiposDocumentoController;
+use App\Http\Controllers\TipoDocumentoCoactivoController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -82,6 +83,9 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
     Route::get('/coactivos', [CoactivoController::class, 'index'])->middleware(['multi.role:fiscalizacion,coactivo']);
     Route::get('/coactivos/{id}', [CoactivoController::class, 'show'])->middleware(['multi.role:fiscalizacion,coactivo']);
     
+    // Coactivos - Lectura: Solo Coactivo
+    Route::get('/coactivos/{id}/tipos-documentos', [TipoDocumentoCoactivoController::class, 'index'])->middleware(['coactivo']);
+
     // Documentos Coactivos - Solo Coactivo
     Route::get('/coactivos/{coactivoId}/documentos', [DocumentoCoactivoController::class, 'index'])->middleware(['coactivo']);
     Route::get('/coactivos/{coactivoId}/documentos/{id}', [DocumentoCoactivoController::class, 'show'])->middleware(['coactivo']);
