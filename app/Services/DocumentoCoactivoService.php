@@ -549,6 +549,103 @@ class DocumentoCoactivoService
     }
 
     /**
+     * Genera Orden de Pago Total (Manual - sin expediente coactivo en sistema)
+     */
+    public function generarOrdenPagoTotalManual(array $data): array
+    {
+        // Convertir nombre completo a mayúsculas
+        $nombreCompletoUpper = mb_strtoupper($data['nombre_completo'], 'UTF-8');
+        $direccionUpper = mb_strtoupper($data['direccion'], 'UTF-8');
+
+        $variables = [
+            'cod_expediente_coactivo' => $data['cod_expediente_coactivo'],
+            'nombre_completo' => $nombreCompletoUpper,
+            'documento' => $data['documento'],
+            'cod_sancion' => $data['cod_sancion'],
+            'direccion' => $direccionUpper,
+            'monto_total' => number_format($data['monto_total'], 2, '.', ','),
+            'monto_final' => number_format($data['monto_final'], 2, '.', ','),
+            'fecha_orden_pago' => \Carbon\Carbon::parse($data['fecha_orden_pago'])->format('d/m/Y'),
+            'porcentaje_amnistia' => $data['porcentaje_amnistia'] ?? '0',
+            'monto_descuento_amnistia' => number_format($data['monto_descuento_amnistia'] ?? 0, 2, '.', ','),
+            'ordenanza' => $data['ordenanza'] ?? '',
+        ];
+
+        $templateName = config('templates.ordenPagoTotal');
+        if (!$templateName) {
+            throw new \Exception("Plantilla 'ordenPagoTotal' no configurada");
+        }
+
+        $templatePath = storage_path("app/plantillas/{$templateName}");
+        if (!file_exists($templatePath)) {
+            throw new \Exception("Archivo de plantilla no encontrado: {$templatePath}");
+        }
+
+        $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+        foreach ($variables as $key => $value) {
+            $templateProcessor->setValue($key, $value);
+        }
+
+        $outputFileName = 'orden_pago_total_manual_' . time() . '.docx';
+        $tempPath = tempnam(sys_get_temp_dir(), 'word_');
+        $templateProcessor->saveAs($tempPath);
+
+        return [
+            'file_path' => $tempPath,
+            'file_name' => $outputFileName,
+            'variables' => $variables,
+        ];
+    }
+
+    /**
+     * Genera Orden de Pago Parcial (Manual - sin expediente coactivo en sistema)
+     */
+    public function generarOrdenPagoParcialManual(array $data): array
+    {
+        // Convertir nombre completo y dirección a mayúsculas
+        $nombreCompletoUpper = mb_strtoupper($data['nombre_completo'], 'UTF-8');
+        $direccionUpper = mb_strtoupper($data['direccion'], 'UTF-8');
+
+        $variables = [
+            'cod_expediente_coactivo' => $data['cod_expediente_coactivo'],
+            'nombre_completo' => $nombreCompletoUpper,
+            'documento' => $data['documento'],
+            'direccion' => $direccionUpper,
+            'cod_sancion' => $data['cod_sancion'],
+            'monto_total' => number_format($data['monto_total'], 2, '.', ','),
+            'monto_pagado' => number_format($data['monto_pagado'], 2, '.', ','),
+            'fecha_pago' => \Carbon\Carbon::parse($data['fecha_pago'])->format('d/m/Y'),
+            'monto_saldo_pendiente' => number_format($data['monto_saldo_pendiente'], 2, '.', ','),
+            'ordenanza' => $data['ordenanza'] ?? '',
+        ];
+
+        $templateName = config('templates.ordenPagoParcial');
+        if (!$templateName) {
+            throw new \Exception("Plantilla 'ordenPagoParcial' no configurada");
+        }
+
+        $templatePath = storage_path("app/plantillas/{$templateName}");
+        if (!file_exists($templatePath)) {
+            throw new \Exception("Archivo de plantilla no encontrado: {$templatePath}");
+        }
+
+        $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+        foreach ($variables as $key => $value) {
+            $templateProcessor->setValue($key, $value);
+        }
+
+        $outputFileName = 'orden_pago_parcial_manual_' . time() . '.docx';
+        $tempPath = tempnam(sys_get_temp_dir(), 'word_');
+        $templateProcessor->saveAs($tempPath);
+
+        return [
+            'file_path' => $tempPath,
+            'file_name' => $outputFileName,
+            'variables' => $variables,
+        ];
+    }
+
+    /**
      * Convierte un número entero (0..999999999) a palabras en español (sin la palabra SOLES).
      * Resultado en minúsculas, por eso envolvemos con mb_strtoupper donde se requiera.
      */

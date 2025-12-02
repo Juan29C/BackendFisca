@@ -186,4 +186,44 @@ class DocumentoCoactivoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Genera Orden de Pago Total Manual (sin expediente coactivo en sistema)
+     * POST /documentos/generar-orden-pago-total-manual
+     */
+    public function generarOrdenPagoTotalManual(\App\Http\Requests\Coactivo\GenerarOrdenPagoTotalManualRequest $request)
+    {
+        try {
+            $result = $this->service->generarOrdenPagoTotalManual($request->validated());
+
+            return response()->download($result['file_path'], $result['file_name'], [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ])->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Genera Orden de Pago Parcial Manual (sin expediente coactivo en sistema)
+     * POST /documentos/generar-orden-pago-parcial-manual
+     */
+    public function generarOrdenPagoParcialManual(\App\Http\Requests\Coactivo\GenerarOrdenPagoParcialManualRequest $request)
+    {
+        try {
+            $result = $this->service->generarOrdenPagoParcialManual($request->validated());
+
+            return response()->download($result['file_path'], $result['file_name'], [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ])->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
