@@ -68,6 +68,27 @@ class DocumentoCoactivoService
                 throw new \Exception("Coactivo no encontrado");
             }
 
+            // Validar si es un recibo de pago y tiene monto
+            if (isset($data['monto_pagado']) && $data['monto_pagado'] > 0) {
+                $tipoDoc = \App\Models\TipoDocumentoCoactivo::find($data['id_tipo_doc_coactivo']);
+                if ($tipoDoc && stripos($tipoDoc->descripcion, 'RECIBO') !== false) {
+                    // Calcular total y saldo
+                    $montoTotal = bcadd(bcadd($coactivo->monto_deuda, $coactivo->monto_costas, 2), $coactivo->monto_gastos_admin, 2);
+                    $montoPagadoActual = $coactivo->monto_pagado ?? 0;
+                    $saldoPendiente = bcsub($montoTotal, $montoPagadoActual, 2);
+                    
+                    // Validar que el pago no exceda el saldo
+                    if (bccomp($data['monto_pagado'], $saldoPendiente, 2) > 0) {
+                        throw new \Exception("El monto pagado (S/ {$data['monto_pagado']}) excede el saldo pendiente (S/ {$saldoPendiente})");
+                    }
+                    
+                    // Actualizar monto_pagado del coactivo
+                    $nuevoMontoPagado = bcadd($montoPagadoActual, $data['monto_pagado'], 2);
+                    $coactivo->monto_pagado = $nuevoMontoPagado;
+                    $coactivo->save();
+                }
+            }
+
             $adm = $coactivo->expediente->administrado;
             $slugPersona = $adm?->ruc ?: ($adm?->dni ?: ('coactivo_' . $idCoactivo));
             $baseFolder = "expedientesCoactivo/{$slugPersona}";
@@ -80,12 +101,18 @@ class DocumentoCoactivoService
 
             $path = $file->storeAs($baseFolder, $uniqueName, 'public');
 
+            // Si es un recibo de pago con monto, guardamos el monto en la descripción
+            $descripcion = $data['descripcion'] ?? null;
+            if (isset($data['monto_pagado']) && $data['monto_pagado'] > 0) {
+                $descripcion = 'MONTO_PAGADO:' . $data['monto_pagado'];
+            }
+
             $documento = $this->repository->create([
                 'id_coactivo' => $idCoactivo,
                 'id_tipo_doc_coactivo' => $data['id_tipo_doc_coactivo'],
                 'codigo_doc' => $data['codigo_doc'] ?? null,
                 'fecha_doc' => $data['fecha_doc'] ?? null,
-                'descripcion' => $data['descripcion'] ?? null,
+                'descripcion' => $descripcion,
                 'ruta' => $path,
             ]);
 
@@ -145,7 +172,36 @@ class DocumentoCoactivoService
 
     public function deleteDocumento(int $id): bool
     {
-        return $this->delete($id);
+        DB::beginTransaction();
+        
+        try {
+            $documento = $this->repository->find($id);
+            if (!$documento) {
+                return false;
+            }
+
+            // Si el documento tiene monto pagado registrado, restarlo del coactivo
+            if ($documento->descripcion && strpos($documento->descripcion, 'MONTO_PAGADO:') === 0) {
+                $montoPagado = floatval(str_replace('MONTO_PAGADO:', '', $documento->descripcion));
+                
+                if ($montoPagado > 0) {
+                    $coactivo = \App\Models\Coactivo::find($documento->id_coactivo);
+                    if ($coactivo) {
+                        $nuevoMontoPagado = bcsub($coactivo->monto_pagado, $montoPagado, 2);
+                        // Asegurar que no sea negativo
+                        $coactivo->monto_pagado = max(0, $nuevoMontoPagado);
+                        $coactivo->save();
+                    }
+                }
+            }
+
+            $result = $this->delete($id);
+            DB::commit();
+            return $result;
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     /**

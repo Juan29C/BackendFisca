@@ -22,6 +22,7 @@ class Coactivo extends Model
         'monto_deuda',
         'monto_costas',
         'monto_gastos_admin',
+        'monto_pagado',
         'estado',
         'observaciones',
     ];
@@ -31,6 +32,7 @@ class Coactivo extends Model
         'monto_deuda' => 'decimal:2',
         'monto_costas' => 'decimal:2',
         'monto_gastos_admin' => 'decimal:2',
+        'monto_pagado' => 'decimal:2',
     ];
 
     // Relaciones

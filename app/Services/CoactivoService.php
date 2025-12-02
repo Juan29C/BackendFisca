@@ -43,6 +43,11 @@ class CoactivoService
 
     public function create(array $data): Coactivo
     {
+        // Asegurar que monto_pagado esté inicializado en 0 si no se proporciona
+        if (!isset($data['monto_pagado'])) {
+            $data['monto_pagado'] = 0.00;
+        }
+        
         return $this->repository->create($data);
     }
 
@@ -83,6 +88,11 @@ class CoactivoService
                 "Ya existe un expediente coactivo con el correlativo {$correlativo} para el año {$year}. " .
                 "El código " . str_pad($correlativo, 4, '0', STR_PAD_LEFT) . "-N-{$year}-MDNCH-GEC ya está en uso."
             );
+        }
+
+        // Asegurar que monto_pagado esté inicializado en 0
+        if (!isset($data['monto_pagado'])) {
+            $data['monto_pagado'] = 0.00;
         }
 
         return $this->repository->crearExpedienteCoactivoConSP($data);
@@ -126,7 +136,9 @@ class CoactivoService
         $montoDeuda = $coactivo->monto_deuda ?? 0;
         $montoCostas = $coactivo->monto_costas ?? 0;
         $montoGastosAdmin = $coactivo->monto_gastos_admin ?? 0;
+        $montoPagado = $coactivo->monto_pagado ?? 0;
         $montoTotal = $montoDeuda + $montoCostas + $montoGastosAdmin;
+        $saldoPendiente = $montoTotal - $montoPagado;
 
         // Obtener primer detalle para cod_sancion
         $detalle = $coactivo->detalles->first();
@@ -146,6 +158,8 @@ class CoactivoService
             'monto_deuda' => $montoDeuda,
             'monto_costas' => $montoCostas,
             'monto_gastos_admin' => $montoGastosAdmin,
+            'monto_pagado' => $montoPagado,
+            'saldo_pendiente' => $saldoPendiente,
         ];
     }
 

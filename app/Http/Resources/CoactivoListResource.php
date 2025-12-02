@@ -33,10 +33,13 @@ class CoactivoListResource extends JsonResource
             }
         }
 
-        // Calcular total de multa
-        $totalMulta = ($this->monto_deuda ?? 0) 
+        // Calcular total de deuda original
+        $totalDeuda = ($this->monto_deuda ?? 0) 
                     + ($this->monto_costas ?? 0) 
                     + ($this->monto_gastos_admin ?? 0);
+        
+        // Calcular saldo pendiente (deuda que queda por pagar)
+        $saldoPendiente = $totalDeuda - ($this->monto_pagado ?? 0);
 
         return [
             'id_coactivo' => $this->id_coactivo,
@@ -45,7 +48,7 @@ class CoactivoListResource extends JsonResource
             'documento' => $documento,
             'tipo_documento' => $tipoDocumento,
             'domicilio' => $adm->domicilio ?? null,
-            'total_multa' => number_format($totalMulta, 2, '.', ''),
+            'total_multa' => number_format($saldoPendiente, 2, '.', ''),
             'estado' => $this->estado,
         ];
     }

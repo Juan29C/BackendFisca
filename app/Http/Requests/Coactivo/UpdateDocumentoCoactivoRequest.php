@@ -18,6 +18,7 @@ class UpdateDocumentoCoactivoRequest extends FormRequest
             'codigo_doc' => 'nullable|string|max:50',
             'fecha_doc' => 'nullable|date',
             'file' => 'sometimes|file|max:10240', // 10MB max
+            'monto_pagado' => 'nullable|numeric|min:0|max:9999999.99',
         ];
     }
 
@@ -27,6 +28,9 @@ class UpdateDocumentoCoactivoRequest extends FormRequest
             'id_tipo_doc_coactivo.exists' => 'El tipo de documento no existe',
             'file.file' => 'Debe proporcionar un archivo válido',
             'file.max' => 'El archivo no puede superar los 10MB',
+            'monto_pagado.numeric' => 'El monto pagado debe ser un número válido',
+            'monto_pagado.min' => 'El monto pagado no puede ser negativo',
+            'monto_pagado.max' => 'El monto pagado excede el límite permitido',
         ];
     }
 }
