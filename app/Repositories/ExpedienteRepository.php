@@ -178,8 +178,9 @@ class ExpedienteRepository
         // Borrar archivos de documentos
         $docs = $expediente->documentos()->get(['ruta']);
         foreach ($docs as $d) {
-            if ($d->ruta && Storage::disk('public')->exists($d->ruta)) {
-                Storage::disk('public')->delete($d->ruta);
+            $disk = config('filesystems.default');
+            if ($d->ruta && Storage::disk($disk)->exists($d->ruta)) {
+                Storage::disk($disk)->delete($d->ruta);
             }
         }
 

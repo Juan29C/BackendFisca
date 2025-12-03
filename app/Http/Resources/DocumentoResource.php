@@ -9,7 +9,6 @@ class DocumentoResource extends JsonResource
 {
     public function toArray($request)
     {
-        // Asegúrate de tener: use Illuminate\Support\Facades\Storage;
         return [
             'id'            => $this->id,
             'id_expediente' => $this->id_expediente,
@@ -18,7 +17,7 @@ class DocumentoResource extends JsonResource
             'fecha_doc'     => $this->fecha_doc,
             'descripcion'   => $this->descripcion,
             'ruta'          => $this->ruta, 
-            'url'           => $this->ruta ? Storage::url($this->ruta) : null,
+            'url'           => $this->ruta ? asset('uploads/' . $this->ruta) : null,
             // opcional:
             'tipo'          => $this->whenLoaded('tipoDocumento', fn () => $this->tipoDocumento->descripcion),
         ];

@@ -51,8 +51,9 @@ class DocumentoCoactivoService
         }
 
         // Eliminar el archivo físico si existe
-        if (!empty($documento->ruta) && Storage::disk('public')->exists($documento->ruta)) {
-            Storage::disk('public')->delete($documento->ruta);
+        $disk = config('filesystems.default');
+        if (!empty($documento->ruta) && Storage::disk($disk)->exists($documento->ruta)) {
+            Storage::disk($disk)->delete($documento->ruta);
         }
 
         return $this->repository->delete($id);
@@ -99,10 +100,11 @@ class DocumentoCoactivoService
             $filename = pathinfo($originalName, PATHINFO_FILENAME);
             $uniqueName = $filename . '_' . time() . '.' . $extension;
 
-            $path = $file->storeAs($baseFolder, $uniqueName, 'public');
+            $disk = config('filesystems.default');
+            $path = $file->storeAs($baseFolder, $uniqueName, $disk);
 
             // Si es un recibo de pago con monto, guardamos el monto en la descripción
-            $descripcion = $data['descripcion'] ?? null;
+            $descripcion = null;
             if (isset($data['monto_pagado']) && $data['monto_pagado'] > 0) {
                 $descripcion = 'MONTO_PAGADO:' . $data['monto_pagado'];
             }
@@ -140,8 +142,9 @@ class DocumentoCoactivoService
 
             if ($hasFile) {
                 // Eliminar archivo anterior si existe
-                if (!empty($documento->ruta) && Storage::disk('public')->exists($documento->ruta)) {
-                    Storage::disk('public')->delete($documento->ruta);
+                $disk = config('filesystems.default');
+                if (!empty($documento->ruta) && Storage::disk($disk)->exists($documento->ruta)) {
+                    Storage::disk($disk)->delete($documento->ruta);
                 }
 
                 $coactivo = \App\Models\Coactivo::with('expediente.administrado')->find($documento->id_coactivo);
@@ -155,7 +158,8 @@ class DocumentoCoactivoService
                 $filename = pathinfo($originalName, PATHINFO_FILENAME);
                 $uniqueName = $filename . '_' . time() . '.' . $extension;
 
-                $path = $file->storeAs($baseFolder, $uniqueName, 'public');
+                $disk = config('filesystems.default');
+                $path = $file->storeAs($baseFolder, $uniqueName, $disk);
                 $data['ruta'] = $path;
             }
 

@@ -165,7 +165,8 @@ class ResolucionService
             $tp->saveAs($tmpPath);
 
             $publicRelPath = 'resoluciones/' . $fileName; // disk public
-            Storage::disk('public')->put($publicRelPath, file_get_contents($tmpPath));
+            $disk = config('filesystems.default');
+            Storage::disk($disk)->put($publicRelPath, file_get_contents($tmpPath));
             @unlink($tmpPath);
 
             $fileUrl = Storage::url($publicRelPath);

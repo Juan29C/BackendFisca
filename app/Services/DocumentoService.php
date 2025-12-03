@@ -84,8 +84,9 @@ class DocumentoService
                 $baseFolder = $this->buildBaseFolderFromDocumento($documento);
 
                 // Asegurar carpeta (opcional, por si tu driver lo requiere)
-                if (!Storage::disk('public')->exists($baseFolder)) {
-                    Storage::disk('public')->makeDirectory($baseFolder);
+                $disk = config('filesystems.default');
+                if (!Storage::disk($disk)->exists($baseFolder)) {
+                    Storage::disk($disk)->makeDirectory($baseFolder);
                 }
 
                 // 3) Guardar nuevo archivo
@@ -93,7 +94,7 @@ class DocumentoService
                 $filename = Str::random(40) . '.' . $ext;
 
                 // putFileAs sobreescribe si existe el mismo nombre; como es aleatorio no colisiona
-                Storage::disk('public')->putFileAs($baseFolder, $data['file'], $filename);
+                Storage::disk($disk)->putFileAs($baseFolder, $data['file'], $filename);
 
                 // Guardar ruta normalizada (sin './')
                 $data['ruta'] = $baseFolder . '/' . $filename;
@@ -127,8 +128,9 @@ class DocumentoService
         }
 
         // Eliminar archivo físico si existe
-        if ($documento->ruta && Storage::disk('public')->exists($documento->ruta)) {
-            Storage::disk('public')->delete($documento->ruta);
+        $disk = config('filesystems.default');
+        if ($documento->ruta && Storage::disk($disk)->exists($documento->ruta)) {
+            Storage::disk($disk)->delete($documento->ruta);
         }
 
         return $this->repository->delete($id);
@@ -189,7 +191,8 @@ class DocumentoService
             $originalExtension = $data['file']->getClientOriginalExtension();
             $filename = Str::random(40) . '.' . $originalExtension;
 
-            $storedPath = Storage::disk('public')->putFileAs($baseFolder, $data['file'], $filename);
+            $disk = config('filesystems.default');
+            $storedPath = Storage::disk($disk)->putFileAs($baseFolder, $data['file'], $filename);
 
             if ($documento) {
                 $documento->fill([
@@ -213,7 +216,8 @@ class DocumentoService
         } catch (\Throwable $e) {
             DB::rollBack();
             if ($storedPath) {
-                Storage::disk('public')->delete($storedPath);
+                $disk = config('filesystems.default');
+                Storage::disk($disk)->delete($storedPath);
             }
             throw $e;
         }

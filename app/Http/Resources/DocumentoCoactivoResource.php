@@ -24,7 +24,7 @@ class DocumentoCoactivoResource extends JsonResource
             'fecha_doc' => $this->fecha_doc,
             'descripcion' => $this->descripcion,
             'ruta' => $this->ruta,
-            'url' => $this->ruta ? asset('storage/' . $this->ruta) : null,
+            'url' => $this->ruta ? asset('uploads/' . $this->ruta) : null,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
