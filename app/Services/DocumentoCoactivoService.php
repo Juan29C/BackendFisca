@@ -799,6 +799,77 @@ class DocumentoCoactivoService
     }
 
     /**
+     * Genera documento de Resolución de Suspensión por Cancelación
+     */
+    public function generarResolucionSuspensionCancelacion(int $idCoactivo): array
+    {
+        $coactivo = \App\Models\Coactivo::with(['expediente.administrado'])
+            ->findOrFail($idCoactivo);
+
+        $administrado = $coactivo->expediente->administrado;
+        if (!$administrado) {
+            throw new \Exception('No se encontró el administrado asociado al expediente coactivo');
+        }
+
+        $nombreCompleto = trim(($administrado->nombres ?? '') . ' ' . ($administrado->apellidos ?? '')) ?: ($administrado->razon_social ?? '');
+        $nombreCompletoUpper = mb_strtoupper($nombreCompleto, 'UTF-8');
+        $documentoIdentidad = $administrado->dni ?: ($administrado->ruc ?? '');
+        $domicilioUpper = mb_strtoupper($administrado->domicilio ?? '', 'UTF-8');
+        $ejecutorUpper = mb_strtoupper($coactivo->ejecutor_coactivo ?? '', 'UTF-8');
+        $auxiliarUpper = mb_strtoupper($coactivo->auxiliar_coactivo ?? '', 'UTF-8');
+
+        // Fecha actual en formato "03 DICIEMBRE DEL 2025"
+        $today = now();
+        $meses = [
+            1 => 'ENERO', 2 => 'FEBRERO', 3 => 'MARZO', 4 => 'ABRIL', 
+            5 => 'MAYO', 6 => 'JUNIO', 7 => 'JULIO', 8 => 'AGOSTO', 
+            9 => 'SEPTIEMBRE', 10 => 'OCTUBRE', 11 => 'NOVIEMBRE', 12 => 'DICIEMBRE'
+        ];
+        $fechaActual = sprintf(
+            '%02d %s DEL %d',
+            $today->day,
+            $meses[(int)$today->month] ?? strtoupper($today->format('F')),
+            $today->year
+        );
+
+        $variables = [
+            'cod_expediente_coactivo' => $coactivo->codigo_expediente_coactivo ?? '',
+            'nombre_completo' => $nombreCompletoUpper,
+            'documento' => $documentoIdentidad,
+            'domicilio' => $domicilioUpper,
+            'ejecutor_coactivo' => $ejecutorUpper,
+            'auxiliar_coactivo' => $auxiliarUpper,
+            'fecha_actual' => $fechaActual,
+        ];
+
+        // Obtener plantilla
+        $templateName = config('templates.resolucionSuspensionCancelacion');
+        if (!$templateName) {
+            throw new \Exception('Plantilla de resolución de suspensión por cancelación no configurada');
+        }
+
+        $templatePath = storage_path("app/plantillas/{$templateName}");
+        if (!file_exists($templatePath)) {
+            throw new \Exception("Plantilla no encontrada: {$templatePath}");
+        }
+
+        $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+        foreach ($variables as $key => $value) {
+            $templateProcessor->setValue($key, $value);
+        }
+
+        $outputFileName = 'resolucion_suspension_cancelacion_' . $coactivo->id_coactivo . '_' . time() . '.docx';
+        $tempPath = tempnam(sys_get_temp_dir(), 'word_');
+        $templateProcessor->saveAs($tempPath);
+
+        return [
+            'file_path' => $tempPath,
+            'file_name' => $outputFileName,
+            'variables' => $variables,
+        ];
+    }
+
+    /**
      * Convierte un número entero (0..999999999) a palabras en español (sin la palabra SOLES).
      * Resultado en minúsculas, por eso envolvemos con mb_strtoupper donde se requiera.
      */

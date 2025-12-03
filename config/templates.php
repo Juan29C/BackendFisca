@@ -9,5 +9,6 @@ return [
   'ordenPagoTotal' => 'orden_pago_total.docx',
   'ordenPagoParcial' => 'orden_pago_parcial.docx',
   'entregaCheque' => 'entrega_cheque.docx',
+  'resolucionSuspensionCancelacion' => 'resolucion_suspension_cancelacion.docx',
 ];
     

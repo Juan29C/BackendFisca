@@ -233,4 +233,24 @@ class DocumentoCoactivoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Genera documento de Resolución de Suspensión por Cancelación
+     * POST /coactivos/{coactivoId}/documentos/generar-resolucion-suspension-cancelacion
+     */
+    public function generarResolucionSuspensionCancelacion(int $coactivoId)
+    {
+        try {
+            $result = $this->service->generarResolucionSuspensionCancelacion($coactivoId);
+
+            return response()->download($result['file_path'], $result['file_name'], [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ])->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

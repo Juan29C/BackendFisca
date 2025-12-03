@@ -99,6 +99,7 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
     Route::post('/coactivos/{coactivoId}/documentos/generar-orden-pago-total', [DocumentoCoactivoController::class, 'generarOrdenPagoTotal'])->middleware(['coactivo']);
     Route::post('/coactivos/{coactivoId}/documentos/generar-orden-pago-parcial', [DocumentoCoactivoController::class, 'generarOrdenPagoParcial'])->middleware(['coactivo']);
     Route::post('/coactivos/{coactivoId}/documentos/generar-entrega-cheque', [DocumentoCoactivoController::class, 'generarEntregaCheque'])->middleware(['coactivo']);
+    Route::post('/coactivos/{coactivoId}/documentos/generar-resolucion-suspension-cancelacion', [DocumentoCoactivoController::class, 'generarResolucionSuspensionCancelacion'])->middleware(['coactivo']);
     
     // Generar Orden de Pago Manual (sin expediente coactivo en sistema) - Solo Coactivo
     Route::post('/documentos/generar-orden-pago-total-manual', [DocumentoCoactivoController::class, 'generarOrdenPagoTotalManual'])->middleware(['coactivo']);
