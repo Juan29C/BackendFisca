@@ -107,4 +107,7 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
     
     // Obtener datos para prefill del formulario de orden de pago - Solo Coactivo
     Route::get('/coactivos/{id}/datos-para-orden-pago', [CoactivoController::class, 'getDatosParaOrdenPago'])->middleware(['coactivo']);
+
+    // Dashboard - Resumen de contadores para módulo coactivo (Ambos roles)
+    Route::get('/coactivos/dashboard/resumen', [CoactivoController::class, 'dashboardResumen'])->middleware(['multi.role:fiscalizacion,coactivo']);
 });

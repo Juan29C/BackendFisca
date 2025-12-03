@@ -195,4 +195,25 @@ class CoactivoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Retorna contadores para el dashboard de coactivo
+     * GET /coactivos/dashboard/resumen
+     */
+    public function dashboardResumen(): JsonResponse
+    {
+        try {
+            $counts = $this->service->getDashboardCounts();
+
+            return response()->json([
+                'ok' => true,
+                'data' => $counts,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

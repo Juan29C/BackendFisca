@@ -170,4 +170,12 @@ class CoactivoService
     {
         return $this->repository->findByAdministradoDocumento($documento);
     }
+
+    /**
+     * Obtener contadores para el dashboard de coactivo
+     */
+    public function getDashboardCounts(): array
+    {
+        return $this->repository->getDashboardCounts();
+    }
 }

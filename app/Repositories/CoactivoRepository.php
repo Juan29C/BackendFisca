@@ -16,6 +16,25 @@ class CoactivoRepository
         $this->model = $model;
     }
 
+    /**
+     * Retorna contadores para el dashboard de coactivo
+     * - expedientes: total de registros en tabla expediente
+     * - coactivos: total de registros en tabla coactivos
+     * - finalizados: coactivos con estado = 'Archivado'
+     */
+    public function getDashboardCounts(): array
+    {
+        $expedientes = DB::table('expediente')->count();
+        $coactivos = $this->model->count();
+        $finalizados = $this->model->whereRaw("LOWER(TRIM(estado)) = 'archivado'")->count();
+
+        return [
+            'expedientes' => $expedientes,
+            'coactivos' => $coactivos,
+            'finalizados' => $finalizados,
+        ];
+    }
+
     public function paginateForList(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         $q      = $filters['q'] ?? null;

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Coactivo;
 use App\Models\DocumentoCoactivo;
+use App\Models\TipoDocumentoCoactivo;
 use App\Repositories\DocumentoCoactivoRepository;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Storage;
@@ -64,25 +65,32 @@ class DocumentoCoactivoService
         DB::beginTransaction();
 
         try {
-            $coactivo = \App\Models\Coactivo::with('expediente.administrado')->find($idCoactivo);
+            $coactivo = Coactivo::with('expediente.administrado')->find($idCoactivo);
             if (!$coactivo) {
                 throw new \Exception("Coactivo no encontrado");
             }
 
+            $tipoDoc = TipoDocumentoCoactivo::find($data['id_tipo_doc_coactivo'] ?? null);
+
+            if ($tipoDoc && stripos($tipoDoc->descripcion, 'RESOLUCION SUSPENSION POR CANCELACION') !== false) {
+                $coactivo->estado = 'Archivado';
+                $coactivo->save();
+            }
+
             // Validar si es un recibo de pago y tiene monto
             if (isset($data['monto_pagado']) && $data['monto_pagado'] > 0) {
-                $tipoDoc = \App\Models\TipoDocumentoCoactivo::find($data['id_tipo_doc_coactivo']);
+                $tipoDoc = TipoDocumentoCoactivo::find($data['id_tipo_doc_coactivo']);
                 if ($tipoDoc && stripos($tipoDoc->descripcion, 'RECIBO') !== false) {
                     // Calcular total y saldo
                     $montoTotal = bcadd(bcadd($coactivo->monto_deuda, $coactivo->monto_costas, 2), $coactivo->monto_gastos_admin, 2);
                     $montoPagadoActual = $coactivo->monto_pagado ?? 0;
                     $saldoPendiente = bcsub($montoTotal, $montoPagadoActual, 2);
-                    
+
                     // Validar que el pago no exceda el saldo
                     if (bccomp($data['monto_pagado'], $saldoPendiente, 2) > 0) {
                         throw new \Exception("El monto pagado (S/ {$data['monto_pagado']}) excede el saldo pendiente (S/ {$saldoPendiente})");
                     }
-                    
+
                     // Actualizar monto_pagado del coactivo
                     $nuevoMontoPagado = bcadd($montoPagadoActual, $data['monto_pagado'], 2);
                     $coactivo->monto_pagado = $nuevoMontoPagado;
@@ -177,7 +185,7 @@ class DocumentoCoactivoService
     public function deleteDocumento(int $id): bool
     {
         DB::beginTransaction();
-        
+
         try {
             $documento = $this->repository->find($id);
             if (!$documento) {
@@ -187,7 +195,7 @@ class DocumentoCoactivoService
             // Si el documento tiene monto pagado registrado, restarlo del coactivo
             if ($documento->descripcion && strpos($documento->descripcion, 'MONTO_PAGADO:') === 0) {
                 $montoPagado = floatval(str_replace('MONTO_PAGADO:', '', $documento->descripcion));
-                
+
                 if ($montoPagado > 0) {
                     $coactivo = \App\Models\Coactivo::find($documento->id_coactivo);
                     if ($coactivo) {
@@ -330,7 +338,7 @@ class DocumentoCoactivoService
 
         // Generar documento
         $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
-        
+
         foreach ($variables as $key => $value) {
             $templateProcessor->setValue($key, $value);
         }
@@ -739,13 +747,22 @@ class DocumentoCoactivoService
         // Formatear fechas
         $fechaRecepcionBancaria = \Carbon\Carbon::parse($data['fecha_recepcion_bancaria'])->format('d/m/Y');
         $fechaResolucionDos = \Carbon\Carbon::parse($documentoResolucionDos->fecha_doc)->format('d/m/Y');
-        
+
         // Fecha actual en formato "10 FEBRERO DEL 2023"
         $today = now();
         $meses = [
-            1 => 'ENERO', 2 => 'FEBRERO', 3 => 'MARZO', 4 => 'ABRIL', 
-            5 => 'MAYO', 6 => 'JUNIO', 7 => 'JULIO', 8 => 'AGOSTO', 
-            9 => 'SEPTIEMBRE', 10 => 'OCTUBRE', 11 => 'NOVIEMBRE', 12 => 'DICIEMBRE'
+            1 => 'ENERO',
+            2 => 'FEBRERO',
+            3 => 'MARZO',
+            4 => 'ABRIL',
+            5 => 'MAYO',
+            6 => 'JUNIO',
+            7 => 'JULIO',
+            8 => 'AGOSTO',
+            9 => 'SEPTIEMBRE',
+            10 => 'OCTUBRE',
+            11 => 'NOVIEMBRE',
+            12 => 'DICIEMBRE'
         ];
         $fechaActual = sprintf(
             '%02d %s DEL %d',
@@ -821,9 +838,18 @@ class DocumentoCoactivoService
         // Fecha actual en formato "03 DICIEMBRE DEL 2025"
         $today = now();
         $meses = [
-            1 => 'ENERO', 2 => 'FEBRERO', 3 => 'MARZO', 4 => 'ABRIL', 
-            5 => 'MAYO', 6 => 'JUNIO', 7 => 'JULIO', 8 => 'AGOSTO', 
-            9 => 'SEPTIEMBRE', 10 => 'OCTUBRE', 11 => 'NOVIEMBRE', 12 => 'DICIEMBRE'
+            1 => 'ENERO',
+            2 => 'FEBRERO',
+            3 => 'MARZO',
+            4 => 'ABRIL',
+            5 => 'MAYO',
+            6 => 'JUNIO',
+            7 => 'JULIO',
+            8 => 'AGOSTO',
+            9 => 'SEPTIEMBRE',
+            10 => 'OCTUBRE',
+            11 => 'NOVIEMBRE',
+            12 => 'DICIEMBRE'
         ];
         $fechaActual = sprintf(
             '%02d %s DEL %d',
