@@ -161,16 +161,13 @@ class ResolucionService
             $baseName = Str::of($numeroResolucion)->replace(['/', ' '], ['-', '-'])->upper()->value();
             $fileName = "{$baseName}.docx";
 
-            $tmpPath = storage_path("app/tmp-{$fileName}");
+            // Guardar en archivo temporal para descarga (NO en public/uploads)
+            $tmpPath = tempnam(sys_get_temp_dir(), 'resolucion_');
             $tp->saveAs($tmpPath);
 
-            $publicRelPath = 'resoluciones/' . $fileName; // disk public
-            $disk = config('filesystems.default');
-            Storage::disk($disk)->put($publicRelPath, file_get_contents($tmpPath));
-            @unlink($tmpPath);
-
-            $fileUrl = Storage::url($publicRelPath);
-            $res->setAttribute('urlResolucion', $fileUrl);
+            // Adjuntar información del archivo temporal a la resolución
+            $res->setAttribute('temp_file_path', $tmpPath);
+            $res->setAttribute('temp_file_name', $fileName);
 
             return $res;
         });

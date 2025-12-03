@@ -92,12 +92,23 @@ class ResolucionRepository
         // 3) Calcular el numero que generó el SP para buscar la resolución
         $numero = $this->numeroResolucionSubgerencial($codigoResolucion);
 
-        // 4) Devolver resolución con relaciones
-        return $this->model
+        // 4) Buscar la resolución recién creada por expediente y numero
+        $res = $this->model
             ->with(['tipoResolucion', 'documentos.tipoDocumento'])
             ->where('id_expediente', $idExpediente)
             ->where('numero', $numero)
             ->latest('id')
             ->first();
+
+        if (!$res) {
+            \Illuminate\Support\Facades\Log::error('Resolución no encontrada después del SP', [
+                'id_expediente' => $idExpediente,
+                'numero_buscado' => $numero,
+                'codigo_resolucion' => $codigoResolucion,
+                'id_tipo_resolucion' => $idTipoResolucion,
+            ]);
+        }
+
+        return $res;
     }
 }
