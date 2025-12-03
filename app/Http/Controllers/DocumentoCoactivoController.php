@@ -213,4 +213,24 @@ class DocumentoCoactivoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Genera documento de Entrega de Cheque
+     * POST /coactivos/{coactivoId}/documentos/generar-entrega-cheque
+     */
+    public function generarEntregaCheque(\App\Http\Requests\Coactivo\GenerarEntregaChequeRequest $request, int $coactivoId)
+    {
+        try {
+            $result = $this->service->generarEntregaCheque($coactivoId, $request->validated());
+
+            return response()->download($result['file_path'], $result['file_name'], [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ])->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

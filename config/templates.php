@@ -8,5 +8,6 @@ return [
   'resolucionCoactivoNum2' => 'resolucion_coactivo_num2.docx',
   'ordenPagoTotal' => 'orden_pago_total.docx',
   'ordenPagoParcial' => 'orden_pago_parcial.docx',
+  'entregaCheque' => 'entrega_cheque.docx',
 ];
     

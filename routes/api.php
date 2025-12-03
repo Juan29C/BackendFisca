@@ -64,11 +64,11 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
     Route::get('/tipos-documentos', [TiposDocumentoController::class, 'index'])->middleware(['multi.role:fiscalizacion,coactivo']);
     
     // Entidades Bancarias - Solo Fiscalización
-    Route::get('/entidades-bancarias', [EntidadBancariaController::class, 'index'])->middleware(['fiscalizacion']);
-    Route::get('/entidades-bancarias/{id}', [EntidadBancariaController::class, 'show'])->middleware(['fiscalizacion']);
-    Route::post('/entidades-bancarias', [EntidadBancariaController::class, 'store'])->middleware(['fiscalizacion']);
-    Route::put('/entidades-bancarias/{id}', [EntidadBancariaController::class, 'update'])->middleware(['fiscalizacion']);
-    Route::delete('/entidades-bancarias/{id}', [EntidadBancariaController::class, 'destroy'])->middleware(['fiscalizacion']);
+    Route::get('/entidades-bancarias', [EntidadBancariaController::class, 'index'])->middleware(['coactivo']);
+    Route::get('/entidades-bancarias/{id}', [EntidadBancariaController::class, 'show'])->middleware(['coactivo']);
+    Route::post('/entidades-bancarias', [EntidadBancariaController::class, 'store'])->middleware(['coactivo']);
+    Route::put('/entidades-bancarias/{id}', [EntidadBancariaController::class, 'update'])->middleware(['coactivo']);
+    Route::delete('/entidades-bancarias/{id}', [EntidadBancariaController::class, 'destroy'])->middleware(['coactivo']);
     
     // Coactivos - Vincular expediente (Solo Coactivo puede crear)
     Route::post('/coactivos/vincular-expediente', [CoactivoController::class, 'vincularExpediente'])->middleware(['coactivo']);
@@ -98,6 +98,7 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
     Route::post('/coactivos/{coactivoId}/documentos/generar-resolucion-2', [DocumentoCoactivoController::class, 'generarResolucion2'])->middleware(['coactivo']);
     Route::post('/coactivos/{coactivoId}/documentos/generar-orden-pago-total', [DocumentoCoactivoController::class, 'generarOrdenPagoTotal'])->middleware(['coactivo']);
     Route::post('/coactivos/{coactivoId}/documentos/generar-orden-pago-parcial', [DocumentoCoactivoController::class, 'generarOrdenPagoParcial'])->middleware(['coactivo']);
+    Route::post('/coactivos/{coactivoId}/documentos/generar-entrega-cheque', [DocumentoCoactivoController::class, 'generarEntregaCheque'])->middleware(['coactivo']);
     
     // Generar Orden de Pago Manual (sin expediente coactivo en sistema) - Solo Coactivo
     Route::post('/documentos/generar-orden-pago-total-manual', [DocumentoCoactivoController::class, 'generarOrdenPagoTotalManual'])->middleware(['coactivo']);

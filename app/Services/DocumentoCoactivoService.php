@@ -706,6 +706,99 @@ class DocumentoCoactivoService
     }
 
     /**
+     * Genera documento de Entrega de Cheque
+     */
+    public function generarEntregaCheque(int $idCoactivo, array $data): array
+    {
+        $coactivo = \App\Models\Coactivo::with(['expediente.administrado'])
+            ->findOrFail($idCoactivo);
+
+        $administrado = $coactivo->expediente->administrado;
+        if (!$administrado) {
+            throw new \Exception('No se encontró el administrado asociado al expediente coactivo');
+        }
+
+        // Obtener entidad bancaria
+        $entidadBancaria = \App\Models\EntidadBancaria::findOrFail($data['id_entidad_bancaria']);
+
+        // Buscar documento coactivo con id_tipo_doc_coactivo = 2 (Resolución DOS)
+        $documentoResolucionDos = DocumentoCoactivo::where('id_coactivo', $idCoactivo)
+            ->where('id_tipo_doc_coactivo', 2)
+            ->first();
+
+        if (!$documentoResolucionDos || !$documentoResolucionDos->fecha_doc) {
+            throw new \Exception('No se encontró el documento de Resolución DOS (tipo 2) para este expediente coactivo');
+        }
+
+        $nombreCompleto = trim(($administrado->nombres ?? '') . ' ' . ($administrado->apellidos ?? '')) ?: ($administrado->razon_social ?? '');
+        $nombreCompletoUpper = mb_strtoupper($nombreCompleto, 'UTF-8');
+        $documentoIdentidad = $administrado->dni ?: ($administrado->ruc ?? '');
+        $direccionUpper = mb_strtoupper($administrado->domicilio ?? '', 'UTF-8');
+        $ejecutorUpper = mb_strtoupper($coactivo->ejecutor_coactivo ?? 'MUNICIPALIDAD DISTRITAL DE NUEVO CHIMBOTE', 'UTF-8');
+
+        // Formatear fechas
+        $fechaRecepcionBancaria = \Carbon\Carbon::parse($data['fecha_recepcion_bancaria'])->format('d/m/Y');
+        $fechaResolucionDos = \Carbon\Carbon::parse($documentoResolucionDos->fecha_doc)->format('d/m/Y');
+        
+        // Fecha actual en formato "10 FEBRERO DEL 2023"
+        $today = now();
+        $meses = [
+            1 => 'ENERO', 2 => 'FEBRERO', 3 => 'MARZO', 4 => 'ABRIL', 
+            5 => 'MAYO', 6 => 'JUNIO', 7 => 'JULIO', 8 => 'AGOSTO', 
+            9 => 'SEPTIEMBRE', 10 => 'OCTUBRE', 11 => 'NOVIEMBRE', 12 => 'DICIEMBRE'
+        ];
+        $fechaActual = sprintf(
+            '%02d %s DEL %d',
+            $today->day,
+            $meses[(int)$today->month] ?? strtoupper($today->format('F')),
+            $today->year
+        );
+
+        // Código del expediente coactivo
+        $codExpedienteCoactivo = $coactivo->codigo_expediente_coactivo ?? '';
+
+        $variables = [
+            'cod_expediente_coactivo' => $codExpedienteCoactivo,
+            'nombre_completo' => $nombreCompletoUpper,
+            'documento' => $documentoIdentidad,
+            'direccion' => $direccionUpper,
+            'entidad_bancaria_nombre' => mb_strtoupper($entidadBancaria->nombre, 'UTF-8'),
+            'fecha_actual' => $fechaActual,
+            'fecha_recepcion_bancaria' => $fechaRecepcionBancaria,
+            'fecha_resolucion_dos' => $fechaResolucionDos,
+            'monto_retencion' => number_format($data['monto_retencion'], 2, '.', ','),
+            'cod_orden_bancario' => $data['cod_orden_bancario'],
+            'ejecutor_coactivo' => $ejecutorUpper,
+        ];
+
+        // Obtener plantilla
+        $templateName = config('templates.entregaCheque');
+        if (!$templateName) {
+            throw new \Exception('Plantilla de entrega de cheque no configurada');
+        }
+
+        $templatePath = storage_path("app/plantillas/{$templateName}");
+        if (!file_exists($templatePath)) {
+            throw new \Exception("Plantilla no encontrada: {$templatePath}");
+        }
+
+        $templateProcessor = new \PhpOffice\PhpWord\TemplateProcessor($templatePath);
+        foreach ($variables as $key => $value) {
+            $templateProcessor->setValue($key, $value);
+        }
+
+        $outputFileName = 'entrega_cheque_' . $coactivo->id_coactivo . '_' . time() . '.docx';
+        $tempPath = tempnam(sys_get_temp_dir(), 'word_');
+        $templateProcessor->saveAs($tempPath);
+
+        return [
+            'file_path' => $tempPath,
+            'file_name' => $outputFileName,
+            'variables' => $variables,
+        ];
+    }
+
+    /**
      * Convierte un número entero (0..999999999) a palabras en español (sin la palabra SOLES).
      * Resultado en minúsculas, por eso envolvemos con mb_strtoupper donde se requiera.
      */
