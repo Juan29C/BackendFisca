@@ -35,6 +35,100 @@ class CoactivoRepository
         ];
     }
 
+    /**
+     * Obtiene estadísticas financieras del dashboard con filtros opcionales
+     * @param string|null $fechaInicio Fecha inicio (formato: Y-m-d)
+     * @param string|null $fechaFin Fecha fin (formato: Y-m-d)
+     * @return array
+     */
+    public function getDashboardEstadisticasFinancieras(?string $fechaInicio = null, ?string $fechaFin = null): array
+    {
+        // Query base
+        $query = $this->model->query();
+
+        // Aplicar filtros de fecha si existen
+        if ($fechaInicio) {
+            $query->where('fecha_inicio', '>=', $fechaInicio);
+        }
+        if ($fechaFin) {
+            $query->where('fecha_inicio', '<=', $fechaFin);
+        }
+
+        // Calcular totales
+        $estadisticas = $query->selectRaw('
+            COUNT(*) as total_expedientes,
+            SUM(monto_deuda + monto_costas + monto_gastos_admin) as monto_total_deuda,
+            SUM(monto_pagado) as monto_total_recaudado,
+            SUM((monto_deuda + monto_costas + monto_gastos_admin) - monto_pagado) as monto_total_pendiente,
+            COUNT(CASE WHEN LOWER(TRIM(estado)) = "en ejecución" THEN 1 END) as en_ejecucion,
+            COUNT(CASE WHEN LOWER(TRIM(estado)) = "archivado" THEN 1 END) as archivados,
+            COUNT(CASE WHEN LOWER(TRIM(estado)) = "suspendido" THEN 1 END) as suspendidos
+        ')->first();
+
+        // Obtener distribución por mes (últimos 6 meses)
+        $distribucionMensual = $this->model
+            ->selectRaw('
+                DATE_FORMAT(fecha_inicio, "%Y-%m") as mes,
+                COUNT(*) as cantidad,
+                SUM(monto_deuda + monto_costas + monto_gastos_admin) as monto_total,
+                SUM(monto_pagado) as monto_recaudado
+            ')
+            ->where('fecha_inicio', '>=', now()->subMonths(6))
+            ->groupBy('mes')
+            ->orderBy('mes', 'asc')
+            ->get();
+
+        // Obtener top 5 mayores deudas pendientes
+        $mayoresDeudas = $this->model
+            ->with(['expediente.administrado'])
+            ->selectRaw('
+                id_coactivo,
+                codigo_expediente_coactivo,
+                id_expediente,
+                (monto_deuda + monto_costas + monto_gastos_admin) - monto_pagado as deuda_pendiente
+            ')
+            ->whereRaw('(monto_deuda + monto_costas + monto_gastos_admin) - monto_pagado > 0')
+            ->orderBy('deuda_pendiente', 'desc')
+            ->limit(5)
+            ->get();
+
+        return [
+            'resumen' => [
+                'total_expedientes' => (int) ($estadisticas->total_expedientes ?? 0),
+                'monto_total_deuda' => (float) ($estadisticas->monto_total_deuda ?? 0),
+                'monto_total_recaudado' => (float) ($estadisticas->monto_total_recaudado ?? 0),
+                'monto_total_pendiente' => (float) ($estadisticas->monto_total_pendiente ?? 0),
+                'porcentaje_recaudacion' => $estadisticas->monto_total_deuda > 0 
+                    ? round(($estadisticas->monto_total_recaudado / $estadisticas->monto_total_deuda) * 100, 2)
+                    : 0,
+                'en_ejecucion' => (int) ($estadisticas->en_ejecucion ?? 0),
+                'archivados' => (int) ($estadisticas->archivados ?? 0),
+                'suspendidos' => (int) ($estadisticas->suspendidos ?? 0),
+            ],
+            'distribucion_mensual' => $distribucionMensual->map(function ($item) {
+                return [
+                    'mes' => $item->mes,
+                    'cantidad' => (int) $item->cantidad,
+                    'monto_total' => (float) $item->monto_total,
+                    'monto_recaudado' => (float) $item->monto_recaudado,
+                ];
+            })->toArray(),
+            'mayores_deudas' => $mayoresDeudas->map(function ($coactivo) {
+                $administrado = $coactivo->expediente->administrado;
+                $nombreCompleto = $administrado 
+                    ? trim(($administrado->nombres ?? '') . ' ' . ($administrado->apellidos ?? '')) ?: ($administrado->razon_social ?? 'Sin nombre')
+                    : 'Sin administrado';
+                
+                return [
+                    'id_coactivo' => $coactivo->id_coactivo,
+                    'codigo' => $coactivo->codigo_expediente_coactivo,
+                    'administrado' => $nombreCompleto,
+                    'deuda_pendiente' => (float) $coactivo->deuda_pendiente,
+                ];
+            })->toArray(),
+        ];
+    }
+
     public function paginateForList(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         $q      = $filters['q'] ?? null;

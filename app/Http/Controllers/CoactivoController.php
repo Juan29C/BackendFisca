@@ -216,4 +216,28 @@ class CoactivoController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Retorna estadísticas financieras para el dashboard con filtros opcionales
+     * GET /coactivos/dashboard/estadisticas?fecha_inicio=2024-01-01&fecha_fin=2024-12-31
+     */
+    public function dashboardEstadisticas(Request $request): JsonResponse
+    {
+        try {
+            $fechaInicio = $request->query('fecha_inicio');
+            $fechaFin = $request->query('fecha_fin');
+
+            $estadisticas = $this->service->getDashboardEstadisticasFinancieras($fechaInicio, $fechaFin);
+
+            return response()->json([
+                'ok' => true,
+                'data' => $estadisticas,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'ok' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

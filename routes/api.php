@@ -6,6 +6,7 @@ use App\Http\Controllers\DocumentoController;
 use App\Http\Controllers\DocumentoCoactivoController;
 use App\Http\Controllers\EntidadBancariaController;
 use App\Http\Controllers\ExpedienteController;
+use App\Http\Controllers\ReporteCoactivoController;
 use App\Http\Controllers\ResolucionController;
 use App\Http\Controllers\TiposDocumentoController;
 use App\Http\Controllers\TipoDocumentoCoactivoController;
@@ -36,6 +37,7 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
     
     // Expedientes - Lectura: Ambos roles
     Route::get('expedientes', [ExpedienteController::class, 'index'])->middleware(['multi.role:fiscalizacion,coactivo']);
+    Route::get('expedientes/dashboard/resumen', [ExpedienteController::class, 'dashboardResumen'])->middleware(['multi.role:fiscalizacion,coactivo']);
     Route::get('expedientes/elevados-coactivo', [ExpedienteController::class, 'elevadosCoactivo'])->middleware(['multi.role:fiscalizacion,coactivo']);
     Route::get('expedientes/{id}', [ExpedienteController::class, 'show'])->middleware(['multi.role:fiscalizacion,coactivo']);
     
@@ -110,4 +112,10 @@ Route::prefix('v1/auth')->middleware(['auth.jwt'])->group(function () {
 
     // Dashboard - Resumen de contadores para módulo coactivo (Ambos roles)
     Route::get('/coactivos/dashboard/resumen', [CoactivoController::class, 'dashboardResumen'])->middleware(['multi.role:fiscalizacion,coactivo']);
+    Route::get('/coactivos/dashboard/estadisticas', [CoactivoController::class, 'dashboardEstadisticas'])->middleware(['multi.role:fiscalizacion,coactivo']);
+
+    // Reportes Coactivo (Ambos roles)
+    Route::get('/reportes/coactivo/estadisticas-pdf', [ReporteCoactivoController::class, 'generarReporteEstadisticasPDF'])->middleware(['multi.role:fiscalizacion,coactivo']);
+    Route::get('/reportes/coactivo/estadisticas-excel', [ReporteCoactivoController::class, 'generarReporteEstadisticasExcel'])->middleware(['multi.role:fiscalizacion,coactivo']);
+    Route::get('/reportes/coactivo/expedientes-pdf', [ReporteCoactivoController::class, 'generarReporteExpedientesPDF'])->middleware(['multi.role:fiscalizacion,coactivo']);
 });

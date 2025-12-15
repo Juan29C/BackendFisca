@@ -190,4 +190,58 @@ class ExpedienteRepository
 
         $expediente->delete();
     }
+
+    public function getDashboardResumen(): array
+    {
+        // Contar expedientes por estado
+        $estadisticas = DB::table('expediente as e')
+            ->join('estado_expediente as ee', 'e.id_estado', '=', 'ee.id')
+            ->select(
+                'ee.id',
+                'ee.nombre',
+                DB::raw('COUNT(e.id) as cantidad')
+            )
+            ->groupBy('ee.id', 'ee.nombre')
+            ->get()
+            ->keyBy('id')
+            ->map(fn($item) => [
+                'nombre' => $item->nombre,
+                'cantidad' => (int) $item->cantidad
+            ])
+            ->toArray();
+
+        // Total de expedientes
+        $totalExpedientes = array_sum(array_column($estadisticas, 'cantidad'));
+
+        // Finalizados (solo archivados - estado 6)
+        $finalizados = DB::table('expediente')
+            ->where('id_estado', 6)
+            ->count();
+
+        // Expedientes recientes (últimos 5)
+        $expedientesRecientes = $this->model
+            ->with(['administrado:id,dni,ruc,tipo,nombres,apellidos,razon_social', 'estado:id,nombre'])
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get()
+            ->map(fn($exp) => [
+                'id' => $exp->id,
+                'codigo' => $exp->codigo_expediente,
+                'ciudadano' => $exp->administrado->tipo === 'natural'
+                    ? trim("{$exp->administrado->nombres} {$exp->administrado->apellidos}")
+                    : $exp->administrado->razon_social,
+                'documento' => $exp->administrado->dni ?? $exp->administrado->ruc,
+                'descripcion' => $exp->descripcion ?? 'Sin descripción',
+                'fecha' => $exp->fecha_inicio?->format('Y-m-d'),
+                'estado' => $exp->estado->nombre,
+            ])
+            ->toArray();
+
+        return [
+            'estadisticas' => $estadisticas,
+            'total_expedientes' => $totalExpedientes,
+            'finalizados' => $finalizados,
+            'expedientes_recientes' => $expedientesRecientes,
+        ];
+    }
 }

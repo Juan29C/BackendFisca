@@ -182,4 +182,9 @@ class ExpedienteService
             return $exp->load(['administrado', 'estado', 'historial.estado']);
         });
     }
+
+    public function getDashboardResumen(): array
+    {
+        return $this->repository->getDashboardResumen();
+    }
 }

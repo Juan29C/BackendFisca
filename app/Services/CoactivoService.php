@@ -178,4 +178,12 @@ class CoactivoService
     {
         return $this->repository->getDashboardCounts();
     }
+
+    /**
+     * Obtener estadísticas financieras para el dashboard
+     */
+    public function getDashboardEstadisticasFinancieras(?string $fechaInicio = null, ?string $fechaFin = null): array
+    {
+        return $this->repository->getDashboardEstadisticasFinancieras($fechaInicio, $fechaFin);
+    }
 }

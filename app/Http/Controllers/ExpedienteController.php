@@ -82,4 +82,11 @@ class ExpedienteController extends Controller
         $exp = $this->service->iniciarReconsideracion($id);
         return (new ExpedienteResource($exp))->response();
     }
+
+    // GET /expedientes/dashboard/resumen
+    public function dashboardResumen(): JsonResponse
+    {
+        $data = $this->service->getDashboardResumen();
+        return response()->json($data);
+    }
 }
