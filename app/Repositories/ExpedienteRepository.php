@@ -65,6 +65,7 @@ class ExpedienteRepository
                 'estado:id,nombre'
             ])
             ->where('id_estado', $estadoId)
+            ->whereDoesntHave('coactivos')
             ->orderByDesc('id')
             ->get();
     }
